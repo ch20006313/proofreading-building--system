@@ -28,10 +28,35 @@ BUILDING_RULES = {
     # 視覺化圖面顯示欄位：僅保留 B~L 與 N~Q (隱藏 A=1, M=13, R=18, S=19, T=20)
     "visible_cols": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17],
     "enable_style_check": False,    # 若未來需要字體/框線檢核可改為 True
+    "enable_col_width_check": True, # 開啟各欄欄寬檢核
+    # Excel 畫面欄寬與 XML 原始值之內距偏移量 (台灣預設新細明體12pt為 5/8 ≈ 0.63；若為 Calibri 11pt 可改 0.71)
+    "col_width_xml_offset": 0.63,
+    "col_width_tolerance": 0.25,    # 欄寬容許誤差 (避免不同電腦 DPI 縮放造成些微進位誤報)
 }
 
 # ==============================================================================
-# 📚 【需求 5：建物項目單價與單位資料庫】
+# 📏 【預設各欄標準欄寬 (依 Excel 畫面顯示數值)】
+# ==============================================================================
+PRESET_COL_WIDTHS = {
+    "B": 9.63,
+    "C": 21.88,
+    "D": 11.63,
+    "E": 8.63,
+    "F": 6.88,
+    "G": 11.50,
+    "H": 12.25,
+    "I": 18.75,
+    "J": 11.63,
+    "K": 3.88,
+    "L": 8.75,
+    "N": 14.25,
+    "O": 6.88,
+    "P": 15.00,
+    "Q": 15.25,
+}
+
+# ==============================================================================
+# 📚 【建物項目單價與單位資料庫】
 # 格式：(C欄「構造/規格」, D欄「用途」): {"unit": "K欄單位", "price": H欄單價}
 # 後續您可直接在此往下新增條目 (比對時系統會自動去除換行符號與前後空白)
 # ==============================================================================
@@ -47,7 +72,6 @@ BUILDING_DB = {
 def custom_round(value, ndigits=0):
     """標準四捨五入 (避免 Python 銀行家捨入誤差)"""
     multiplier = 10 ** ndigits
-    # 加入極小值 1e-12 避免二進位浮點數誤差 (例如 2.5 存成 2.4999999999999996)
     if value >= 0:
         rounded_val = math.floor(value * multiplier + 0.5 + 1e-12) / multiplier
     else:
@@ -64,6 +88,79 @@ def get_cell_value_safe(ws, row, col, merged_ranges):
             return ws.cell(row=min_row, column=min_col).value
     return ws.cell(row=row, column=col).value
 
+def check_column_widths(ws, visible_cols):
+    """
+    讀取工作表各欄實際 XML 欄寬並展開連續區間，換算為 Excel 顯示欄寬後與 PRESET_COL_WIDTHS 比對。
+    回傳 (col_width_status, col_width_error_list, col_width_inspector)
+    """
+    offset = BUILDING_RULES["col_width_xml_offset"]
+    tol = BUILDING_RULES["col_width_tolerance"]
+    enabled = BUILDING_RULES["enable_col_width_check"]
+
+    # 若檔案未指定預設欄寬，以標準 8.38 + offset 作為基準
+    default_xml_w = ws.sheet_format.defaultColWidth
+    if default_xml_w is None:
+        default_xml_w = 8.38 + offset
+    else:
+        default_xml_w = float(default_xml_w)
+
+    raw_xml_widths = {c: default_xml_w for c in visible_cols}
+
+    # 遍歷 column_dimensions 並展開 min ~ max 群組區間
+    for key, dim in ws.column_dimensions.items():
+        if dim.width is None:
+            continue
+        try:
+            start_c = dim.min if dim.min is not None else openpyxl.utils.column_index_from_string(str(key))
+            end_c = dim.max if dim.max is not None else start_c
+        except Exception:
+            continue
+        for c_idx in range(start_c, end_c + 1):
+            if c_idx in raw_xml_widths:
+                raw_xml_widths[c_idx] = float(dim.width)
+
+    col_width_status = {}
+    col_width_error_list = []
+    col_width_inspector = []
+
+    for c_idx in visible_cols:
+        col_letter = openpyxl.utils.get_column_letter(c_idx)
+        raw_w = round(raw_xml_widths[c_idx], 2)
+        est_display_w = round(max(0.0, raw_xml_widths[c_idx] - offset), 2)
+        preset_w = PRESET_COL_WIDTHS.get(col_letter)
+
+        is_err = False
+        err_msg = ""
+        if enabled and preset_w is not None:
+            if abs(est_display_w - preset_w) > tol:
+                is_err = True
+                err_msg = f"{col_letter}欄寬度不符：目前約 {est_display_w:.2f} (XML {raw_w:.2f})，預設應為 {preset_w:.2f}"
+                col_width_error_list.append({
+                    "col": col_letter,
+                    "actual": f"{est_display_w:.2f}",
+                    "raw_xml": f"{raw_w:.2f}",
+                    "preset": f"{preset_w:.2f}",
+                    "diff": f"{(est_display_w - preset_w):+.2f}",
+                    "msg": err_msg
+                })
+
+        col_width_status[c_idx] = {
+            "is_error": is_err,
+            "est_display": f"{est_display_w:.2f}",
+            "raw_xml": f"{raw_w:.2f}",
+            "preset": f"{preset_w:.2f}" if preset_w is not None else "未設定",
+            "error": err_msg
+        }
+        col_width_inspector.append({
+            "col": col_letter,
+            "est_display": f"{est_display_w:.2f}",
+            "raw_xml": f"{raw_w:.2f}",
+            "preset": f"{preset_w:.2f}" if preset_w is not None else "未設定",
+            "is_error": is_err
+        })
+
+    return col_width_status, col_width_error_list, col_width_inspector
+
 def is_pure_number(val):
     """判斷是否為純數值 (排除 None、bool、datetime、文字)"""
     if val is None or isinstance(val, (bool, datetime.date, datetime.datetime)):
@@ -76,7 +173,7 @@ def is_pure_number(val):
             return False
         float(s)
         return True
-    except:
+    except Exception:
         return False
 
 def to_float(val):
@@ -98,11 +195,11 @@ def parse_rate_value(val):
     if s.endswith('%'):
         try:
             return float(s[:-1].strip()) / 100.0
-        except:
+        except Exception:
             return None
     try:
         return float(s.replace(',', ''))
-    except:
+    except Exception:
         return None
 
 # 安全算術 AST 求值器 (絕不使用 eval)
@@ -134,10 +231,7 @@ def _safe_eval_node(node):
         raise ValueError("包含不合法的運算結構")
 
 def validate_and_eval_col_i(raw_val):
-    """
-    需求 2：檢核 I 欄計算式是否合理並計算結果。
-    回傳 (is_valid: bool, result_or_None: float, error_msg: str)
-    """
+    """檢核 I 欄計算式是否合理並計算結果"""
     if raw_val is None:
         return True, None, ""
     if isinstance(raw_val, (int, float)) and not isinstance(raw_val, bool):
@@ -147,19 +241,16 @@ def validate_and_eval_col_i(raw_val):
     if expr == "":
         return True, None, ""
 
-    # 若開頭有 '='，移除後再檢核 (若含有儲存格參照字母則跳過純算式檢核)
     if expr.startswith('='):
         expr_body = expr[1:].strip()
         if re.search(r'[A-Za-z]', expr_body):
             return True, None, ""
         expr = expr_body
 
-    # 移除空白
     compact = re.sub(r'\s+', '', expr)
     if compact == "":
         return True, None, ""
 
-    # 1. 檢查全形運算符號或非合法字元
     fullwidth_match = re.findall(r'[×÷＋－＊／（）]', compact)
     if fullwidth_match:
         return False, None, f"計算式包含全形符號 ({''.join(set(fullwidth_match))})，請改為半形"
@@ -168,18 +259,15 @@ def validate_and_eval_col_i(raw_val):
     if invalid_chars:
         return False, None, f"計算式包含非合法字元 ({''.join(set(invalid_chars))})"
 
-    # 2. 檢查連續運算符號 (例如 **, +*, //, ++, *-, /+)
     dup_op = re.search(r'[\+\-\*\/]{2,}', compact)
     if dup_op:
         return False, None, f"計算式不合理：出現連續運算符號 ({dup_op.group()})"
 
-    # 3. 檢查開頭或結尾為運算符號 (加減乘除後方無數字等)
     if re.match(r'^[\+\*\/]', compact):
         return False, None, f"計算式不合理：開頭不可為運算符號 ({compact[0]})"
     if re.search(r'[\+\-\*\/]$', compact):
         return False, None, f"計算式不合理：運算符號 ({compact[-1]}) 後方缺少數字"
 
-    # 4. 檢查括號成對與空括號、括號前後缺少運算符
     depth = 0
     for ch in compact:
         if ch == '(':
@@ -200,13 +288,11 @@ def validate_and_eval_col_i(raw_val):
     if re.search(r'\d\(', compact) or re.search(r'\)\d', compact) or ')(' in compact:
         return False, None, "計算式不合理：括號與數字之間缺少乘號 (*)"
 
-    # 5. 檢查不合法小數點 (例如 12..5、1.2.3、孤立小數點)
     if '..' in compact or re.search(r'\d+\.\d+\.', compact):
         return False, None, "計算式不合理：小數點格式錯誤"
     if re.search(r'(?<!\d)\.(?!\d)', compact):
         return False, None, "計算式不合理：出現孤立的小數點"
 
-    # 6. AST 安全解析與求值
     try:
         tree = ast.parse(compact, mode='eval')
         val = _safe_eval_node(tree)
@@ -223,7 +309,6 @@ def format_cell_display(val, col_idx, row_idx):
     if isinstance(val, (datetime.date, datetime.datetime)):
         return val.strftime("%Y/%m/%d")
     if isinstance(val, float):
-        # L 欄發放比例若為 0~1 小數，以百分比或簡潔數字顯示
         if col_idx == 12 and row_idx >= 11 and 0 <= val <= 2:
             pct = custom_round(val * 100, 1)
             return f"{int(pct)}%" if pct == int(pct) else f"{pct}%"
@@ -240,7 +325,7 @@ def format_cell_display(val, col_idx, row_idx):
     return s[:9] + '..' if len(s) > 9 else s
 
 def extract_max_row_from_print_area(print_area):
-    """解析單一或多段列印範圍 (如 '$B$1:$Q$27,$B$28:$Q$44') 取得最大列數"""
+    """解析單一或多段列印範圍取得最大列數"""
     if not print_area:
         return None
     if isinstance(print_area, (list, tuple)):
@@ -270,7 +355,6 @@ HTML_TEMPLATE = """
     <style>
         body { font-family: '微軟正黑體', sans-serif; background-color: #f4f7f6; margin: 0; padding: 14px 16px; color: #333; scroll-behavior: smooth; }
         .header-title { text-align: center; color: #2c3e50; margin: 4px 0 16px 0; font-size: 22px; }
-        /* 需求 1：放大整體版面寬度並縮小右側欄寬 */
         .layout-container { display: flex; gap: 16px; max-width: 98%; width: 100%; margin: auto; align-items: flex-start; }
         .main-content { flex: 1; background: #fff; padding: 22px 24px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; min-width: 0; }
         .upload-box { border: 2px dashed #3498db; padding: 22px; text-align: center; border-radius: 10px; margin-bottom: 18px; background: #f8fbff; transition: 0.3s; }
@@ -284,22 +368,30 @@ HTML_TEMPLATE = """
         
         .success { color: #27ae60; font-weight: bold; background: #e9f7ef; padding: 10px 14px; border-radius: 5px; }
         .special-warning { background-color: #f3e5f5 !important; color: #6a1b9a !important; border: 2px solid #9c27b0 !important; font-weight: bold; cursor: help; }
-        .correction-panel { background: #fff3cd; border-left: 6px solid #ffc107; padding: 14px 18px; border-radius: 6px; margin-bottom: 20px; }
+        
+        .correction-panel { background: #fff3cd; border-left: 6px solid #ffc107; padding: 14px 18px; border-radius: 6px; margin-bottom: 18px; }
         .correction-panel h4 { margin-top: 0; margin-bottom: 10px; color: #856404; font-size: 15px; }
         .correction-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 4px; overflow: hidden; }
         .correction-table th, .correction-table td { padding: 8px 10px; border: 1px solid #ffeeba; text-align: center; font-size: 13px; }
         .correction-table th { background: #ffe8a1; color: #856404; }
+
+        /* 欄寬異常專屬警告面板 */
+        .width-panel { background: #fdecea; border-left: 6px solid #e74c3c; padding: 14px 18px; border-radius: 6px; margin-bottom: 18px; }
+        .width-panel h4 { margin-top: 0; margin-bottom: 10px; color: #922b21; font-size: 15px; }
+        .width-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 4px; overflow: hidden; }
+        .width-table th, .width-table td { padding: 7px 10px; border: 1px solid #f5c6cb; text-align: center; font-size: 13px; }
+        .width-table th { background: #f8d7da; color: #922b21; }
         
         /* 結構探測器面板 */
         .inspector-box { background: #eef6ff; border: 1px solid #b8daff; border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; }
         .inspector-toggle { background: #2980b9; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; }
         .inspector-toggle:hover { background: #1f6391; }
-        .inspector-content { display: none; margin-top: 10px; max-height: 300px; overflow-y: auto; background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 10px; font-size: 12px; }
-        .inspector-table { width: 100%; border-collapse: collapse; }
+        .inspector-content { display: none; margin-top: 10px; max-height: 360px; overflow-y: auto; background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 10px; font-size: 12px; }
+        .inspector-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
         .inspector-table th, .inspector-table td { border: 1px solid #ddd; padding: 5px 8px; text-align: left; }
         .inspector-table th { background: #f1f5f9; position: sticky; top: 0; }
 
-        /* 需求 1：縮小右側瀏覽紀錄與按鈕寬度 (由 320px 縮減至 215px) */
+        /* 右側精簡瀏覽紀錄面板 */
         .history-panel { width: 215px; flex-shrink: 0; background: #fff; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: sticky; top: 16px; overflow: hidden; }
         .panel-actions { display: flex; gap: 6px; padding: 8px; background: #ecf0f1; border-bottom: 1px solid #dcdde1; }
         .action-btn { flex: 1; padding: 6px 4px; border: none; border-radius: 5px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; font-family: inherit; white-space: nowrap; }
@@ -315,11 +407,18 @@ HTML_TEMPLATE = """
         .history-item.active { background: #e1f0fa; border-left: 4px solid #2980b9; }
         .history-time { font-size: 11px; color: #7f8c8d; }
         
-        /* 視覺化 Excel 網格：僅保留 B~L, N~Q，每欄更寬敞 */
+        /* 視覺化 Excel 網格 */
         .map-container { overflow-x: auto; border-radius: 8px; border: 1px solid #ddd; margin-top: 12px; }
         .excel-map { border-collapse: collapse; width: 100%; table-layout: fixed; background: #fff; }
         .excel-map th { background-color: #ecf0f1; border: 1px solid #bdc3c7; font-size: 12px; padding: 6px 4px; position: sticky; top: 0; z-index: 2; }
         .excel-map th.row-num { width: 34px; }
+        .excel-map th.col-width-error { background-color: #fadbd8 !important; color: #c0392b !important; border: 2px solid #e74c3c !important; cursor: help; }
+        .excel-map th.col-width-error:hover { z-index: 25; }
+        .excel-map th.col-width-error:hover .tooltip { opacity: 1; visibility: visible; }
+        .excel-map th .tooltip { bottom: auto; top: 115%; }
+        .excel-map th:nth-child(-n+3) .tooltip { left: 0; transform: none; }
+        .excel-map th:nth-last-child(-n+3) .tooltip { left: auto; right: 0; transform: none; }
+
         .excel-map td { border: 1px solid #e5e8e8; height: 32px; padding: 2px 4px; text-align: center; position: relative; font-size: 12px; overflow: visible; word-break: break-word; }
         .cell-valid { background-color: #eafaf1; color: #27ae60; }
         .cell-empty { background-color: #f9f9f9; color: #ccc; }
@@ -334,6 +433,8 @@ HTML_TEMPLATE = """
         .sheet-title:hover { background-color: #e2e8f0; }
         .meta-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; font-size: 12px; }
         .badge { background: #eef2f7; color: #34495e; padding: 4px 10px; border-radius: 12px; border: 1px solid #d5dde5; }
+        .badge-ok { background: #e9f7ef; color: #1e8449; border-color: #a9dfbf; }
+        .badge-err { background: #fdecea; color: #c0392b; border-color: #f5b7b1; font-weight: bold; }
     </style>
 </head>
 <body id="pageTop">
@@ -474,14 +575,42 @@ HTML_TEMPLATE = """
                             <span class="badge">S24：{{ s_data.meta.s24_text or '(空)' }}</span>
                             <span class="badge">Q5 面積：{{ s_data.meta.q5_text or '(空)' }}</span>
                             <span class="badge">S/T 合計：{{ s_data.meta.st_total_text or '未偵測' }}</span>
+                            {% if s_data.col_width_error_list|length == 0 %}
+                                <span class="badge badge-ok">📏 欄寬檢核：全數符合</span>
+                            {% else %}
+                                <span class="badge badge-err">📏 欄寬異常：{{ s_data.col_width_error_list|length }} 欄</span>
+                            {% endif %}
                         </div>
 
-                        <!-- 結構探測器 -->
+                        <!-- 結構探測器 (含 B~Q 欄寬完整對照表) -->
                         <div class="inspector-box">
                             <button type="button" class="inspector-toggle" onclick="toggleInspector('{{ s_idx }}')">
-                                🔍 展開/收合「{{ sheet_name }}」座標、字體與公式結構表 (共 {{ s_data.structure_info|length }} 格有值)
+                                🔍 展開/收合「{{ sheet_name }}」各欄欄寬對照、座標與公式結構表
                             </button>
                             <div class="inspector-content" id="inspector-{{ s_idx }}">
+                                <p style="margin:0 0 6px 0; font-weight:bold; color:#2c3e50;">📏 本表 B～Q 欄寬度檢測對照表 (偏移補償：{{ offset_val }}、容許誤差：±{{ tol_val }})</p>
+                                <table class="inspector-table">
+                                    <tr>
+                                        <th>欄位</th><th>Excel 換算欄寬</th><th>XML 原始值</th><th>預設標準欄寬</th><th>檢核狀態</th>
+                                    </tr>
+                                    {% for cw in s_data.col_width_inspector %}
+                                    <tr>
+                                        <td><strong>{{ cw.col }} 欄</strong></td>
+                                        <td>{{ cw.est_display }}</td>
+                                        <td style="color:#7f8c8d;">{{ cw.raw_xml }}</td>
+                                        <td>{{ cw.preset }}</td>
+                                        <td>
+                                            {% if cw.is_error %}
+                                                <span style="color:#c0392b; font-weight:bold;">❌ 不符</span>
+                                            {% else %}
+                                                <span style="color:#27ae60; font-weight:bold;">✅ 正常</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </table>
+
+                                <p style="margin:8px 0 6px 0; font-weight:bold; color:#2c3e50;">📋 儲存格座標與原始公式 (共 {{ s_data.structure_info|length }} 格有值)</p>
                                 <table class="inspector-table">
                                     <tr>
                                         <th>座標</th><th>顯示數值</th><th>原始公式 / 內容</th><th>字體</th><th>合併範圍</th>
@@ -503,6 +632,25 @@ HTML_TEMPLATE = """
                             <p style="color: #c0392b; font-weight: bold; background: #fadbd8; padding: 10px; border-radius: 5px; font-size: 11pt;">⚠️ 注意事項：本工作表未設定列印範圍且資料超過 {{ s_data.max_row }} 列，系統僅校對前 {{ s_data.max_row }} 列。</p>
                         {% endif %}
 
+                        <!-- 欄寬異常專屬警示表 -->
+                        {% if s_data.col_width_error_list %}
+                        <div class="width-panel">
+                            <h4>📏 發現欄位寬度與預設標準不符：</h4>
+                            <table class="width-table">
+                                <tr><th>欄位</th><th>目前欄寬 (Excel 換算)</th><th>XML 原始值</th><th>預設標準欄寬</th><th>差異值</th></tr>
+                                {% for cw in s_data.col_width_error_list %}
+                                <tr>
+                                    <td><strong>{{ cw.col }} 欄</strong></td>
+                                    <td style="color:#c0392b; font-weight:bold;">{{ cw.actual }}</td>
+                                    <td style="color:#7f8c8d;">{{ cw.raw_xml }}</td>
+                                    <td style="color:#27ae60; font-weight:bold;">{{ cw.preset }}</td>
+                                    <td style="color:#c0392b;">{{ cw.diff }}</td>
+                                </tr>
+                                {% endfor %}
+                            </table>
+                        </div>
+                        {% endif %}
+
                         {% if s_data.correction_list %}
                         <div class="correction-panel">
                             <h4>⚠️ 發現「小計 / 合計 / S-T欄面積加總」與系統運算不符：</h4>
@@ -520,19 +668,25 @@ HTML_TEMPLATE = """
                         </div>
                         {% endif %}
                         
-                        {% if s_data.error_list|length == 0 and not s_data.correction_list %}
-                            <p class="success">✅ 完美！本工作表所有算式、發放比例、單價單位、小計、合計與面積加總皆完全符合規定。</p>
+                        {% if s_data.error_list|length == 0 and not s_data.correction_list and not s_data.col_width_error_list %}
+                            <p class="success">✅ 完美！本工作表各欄欄寬、算式、發放比例、單價單位、小計、合計與面積加總皆完全符合規定。</p>
                         {% else %}
-                            <p style="margin-bottom:8px;">💡 滑鼠移至<span style="color:#c0392b; font-weight:bold;">紅色/紫色格子</span>可查看錯誤原因（共發現 {{ s_data.error_list|length }} 處異常；已隱藏 A、M、R、S 欄以放大視野）。</p>
+                            <p style="margin-bottom:8px;">💡 滑鼠移至<span style="color:#c0392b; font-weight:bold;">紅色欄名／紅色或紫色格子</span>可查看錯誤原因（共發現 {{ s_data.error_list|length }} 處異常；已隱藏 A、M、R、S 欄以放大視野）。</p>
                         {% endif %}
 
-                        <!-- 視覺化圖面 (僅保留 B~L, N~Q) -->
+                        <!-- 視覺化圖面 (僅保留 B~L, N~Q，欄頭支援欄寬異常紅框與提示) -->
                         <div class="map-container">
                             <table class="excel-map">
                                 <tr>
                                     <th class="row-num"></th>
                                     {% for c in visible_cols %}
-                                        <th>{{ get_col_letter(c) }}</th>
+                                        {% set cw = s_data.col_width_status.get(c, {'is_error': False, 'error': ''}) %}
+                                        <th class="{% if cw.is_error %}col-width-error{% endif %}">
+                                            {{ get_col_letter(c) }}{% if cw.is_error %} ⚠️{% endif %}
+                                            {% if cw.is_error %}
+                                                <div class="tooltip">{{ cw.error }}</div>
+                                            {% endif %}
+                                        </th>
                                     {% endfor %}
                                 </tr>
                                 {% for r in range(1, s_data.max_row + 1) %}
@@ -578,7 +732,7 @@ HTML_TEMPLATE = """
                             {% for s_name, s_data in hist.sheets.items() %}
                                 <li onclick="window.location.href='/?id={{ uid }}#sheet-{{ loop.index }}'" style="cursor: pointer; padding: 2px 0; text-decoration: underline;">
                                     {{ s_name }} 
-                                    {% if s_data.error_list|length == 0 and not s_data.correction_list %}
+                                    {% if s_data.error_list|length == 0 and not s_data.correction_list and not s_data.col_width_error_list %}
                                         <span style="color: #27ae60; font-weight: bold;">(✅)</span>
                                     {% else %}
                                         <span style="color: #c0392b; font-weight: bold;">(❌ {{ s_data.error_list|length }} 錯誤)</span>
@@ -635,6 +789,13 @@ def background_process_excel(task_id, filepath, original_filename):
             correction_list = []
             structure_info = []
 
+            # ==================================================================
+            # 新增：各欄欄寬檢核 (B~L, N~Q)
+            # ==================================================================
+            col_width_status, col_width_error_list, col_width_inspector = check_column_widths(ws_formula, visible_cols)
+            for cw_err in col_width_error_list:
+                error_list.append(f"❌ {cw_err['msg']}")
+
             excess_rows = False
             print_area = ws_data.print_area
             print_area_str = str(print_area) if print_area else "未設定"
@@ -653,7 +814,7 @@ def background_process_excel(task_id, filepath, original_filename):
             all_special_flags = {r: {c: False for c in range(1, 21)} for r in range(1, max_row + 1)}
 
             # ==================================================================
-            # 需求 3：讀取 H1 (1, 8) 與 S24 (24, 19)
+            # 讀取 H1 (1, 8) 與 S24 (24, 19)
             # ==================================================================
             h1_raw = get_cell_value_safe(ws_data, 1, 8, merged_ranges)
             h1_str = str(h1_raw or "").strip()
@@ -663,7 +824,6 @@ def background_process_excel(task_id, filepath, original_filename):
             s24_str = str(s24_raw if s24_raw is not None else "").strip()
             s24_upper = s24_str.upper()
 
-            # S24 包含「承租」或「FALSE」 -> 原則 1.0；不包含「承租」或「TRUE」 -> 0.5
             s24_is_leased_or_false = (
                 (s24_raw is False)
                 or (s24_upper == "FALSE")
@@ -671,7 +831,7 @@ def background_process_excel(task_id, filepath, original_filename):
             )
 
             # ==================================================================
-            # 需求 7：驗算 S 欄「合計」之 T 欄加總 (T2:合計上一列) 並比對 Q5
+            # 驗算 S 欄「合計」之 T 欄加總 (T2:合計上一列) 並比對 Q5
             # ==================================================================
             q5_raw = get_cell_value_safe(ws_data, 5, 17, merged_ranges)
             q5_num = to_float(q5_raw) if is_pure_number(q5_raw) else None
@@ -681,7 +841,6 @@ def background_process_excel(task_id, filepath, original_filename):
             for r_s in range(2, scan_st_max + 1):
                 s_val = str(ws_data.cell(row=r_s, column=19).value or "").strip()
                 if "合計" in s_val:
-                    # 計算 T2 : T{r_s - 1} 的加總
                     calc_t_sum = 0.0
                     for r_t in range(2, r_s):
                         t_item = ws_data.cell(row=r_t, column=20).value
@@ -693,7 +852,6 @@ def background_process_excel(task_id, filepath, original_filename):
                     t_total_num = to_float(t_total_raw) if is_pure_number(t_total_raw) else None
                     st_total_text = f"T{r_s}={t_total_num:,.2f} (重算={calc_t_sum:,.2f})" if t_total_num is not None else f"T{r_s}=空白 (重算={calc_t_sum:,.2f})"
 
-                    # (1) 檢核 T{r_s} 是否等於 T2:T{r_s-1} 加總
                     if t_total_num is None or abs(t_total_num - calc_t_sum) > 0.01:
                         orig_disp = f"{t_total_num:,.2f}" if t_total_num is not None else "(空白/非數字)"
                         correction_list.append({
@@ -705,7 +863,6 @@ def background_process_excel(task_id, filepath, original_filename):
                         })
                         error_list.append(f"❌ T{r_s}: S欄合計對應之T欄數值({orig_disp})與 T2:T{r_s-1} 加總({calc_t_sum:,.2f})不符")
 
-                    # (2) 比對 Q5 數值是否與 T 欄加總相符
                     if q5_num is None:
                         if 5 <= max_row:
                             all_calc_errors[5][17].append(f"Q5面積為空白或非數字，應與 T{r_s} 加總 ({calc_t_sum:,.2f}) 相符")
@@ -728,17 +885,17 @@ def background_process_excel(task_id, filepath, original_filename):
                             "original": f"{q5_num:,.2f}",
                             "correct": f"{calc_t_sum:,.2f}"
                         })
-                    break  # 找到第一個 S 欄合計即結束
+                    break
 
             # ==================================================================
-            # 需求 6 累計變數 (小計與合計追蹤)
+            # 小計與合計累計變數
             # ==================================================================
             current_block_n_sum = 0.0
             subtotal_list = []
             has_subtotal_seen = False
 
             # ==================================================================
-            # 逐列進行規則檢核 (第 1 列 ~ max_row)
+            # 逐列進行規則檢核 (第 11 列 ~ max_row)
             # ==================================================================
             for row in range(1, max_row + 1):
                 if row < data_start_row:
@@ -749,7 +906,6 @@ def background_process_excel(task_id, filepath, original_filename):
                 col_D_val = str(ws_data.cell(row=row, column=4).value or "").strip()
                 col_O_val = str(get_cell_value_safe(ws_data, row, 15, merged_ranges) or "").strip()
 
-                # 判斷該列是否為頁尾/注意事項/日期列/以下空白列
                 row_text_sample = "".join(
                     str(ws_data.cell(row=row, column=c).value or "") for c in [2, 3, 12, 14]
                 )
@@ -758,7 +914,7 @@ def background_process_excel(task_id, filepath, original_filename):
                 is_subtotal_row = ("小計" in col_B_val)
                 is_total_row = ("合計" in col_B_val) and not is_subtotal_row
 
-                # ---------------- 【需求 6：小計與合計驗算】 ----------------
+                # ---------------- 【小計與合計驗算】 ----------------
                 if is_subtotal_row:
                     n_raw = ws_data.cell(row=row, column=14).value
                     n_val_num = to_float(n_raw) if is_pure_number(n_raw) else 0.0
@@ -776,7 +932,7 @@ def background_process_excel(task_id, filepath, original_filename):
 
                     subtotal_list.append(expected_sub)
                     has_subtotal_seen = True
-                    current_block_n_sum = 0.0  # 歸零，下一區段不重複累加
+                    current_block_n_sum = 0.0
                     continue
 
                 if is_total_row:
@@ -800,28 +956,24 @@ def background_process_excel(task_id, filepath, original_filename):
                         })
                         all_calc_errors[row][14].append(f"合計金額錯誤，{tot_desc}應為 {expected_tot:,}")
 
-                    # 結算後重置
                     current_block_n_sum = 0.0
                     subtotal_list = []
                     has_subtotal_seen = False
                     continue
 
-                # 若為注意事項/調查日期/以下空白列，忽略不納入加總與明細檢核
                 if is_footer_row:
                     continue
 
-                # 累加本區段 N 欄數值 (供下一筆小計或合計驗算使用)
                 n_cell_val = ws_data.cell(row=row, column=14).value
                 if is_pure_number(n_cell_val):
                     current_block_n_sum += to_float(n_cell_val)
 
-                # 判斷 B 欄是否有編號
                 has_col_B_id = (
                     col_B_val != ""
                     and not any(kw in col_B_val for kw in ["編號", "項目", "小計", "合計", "總計", "注意", "調查", "以下空白", "備註"])
                 )
 
-                # ---------------- 【需求 5：C 欄 & D 欄 資料庫檢核 H 欄單價、K 欄單位】 ----------------
+                # ---------------- 【C 欄 & D 欄 資料庫檢核 H 欄單價、K 欄單位】 ----------------
                 norm_key = (
                     col_C_val.replace('\n', '').replace('\r', '').strip(),
                     col_D_val.replace('\n', '').replace('\r', '').strip()
@@ -839,7 +991,7 @@ def background_process_excel(task_id, filepath, original_filename):
                     if k_raw != db_item["unit"]:
                         all_calc_errors[row][11].append(f"單位與資料庫不符，應為「{db_item['unit']}」")
 
-                # ---------------- 【需求 2：檢核 I 欄計算式合理性，並驗算 J 欄為 I 欄四捨五入結果】 ----------------
+                # ---------------- 【I 欄計算式檢核與 J 欄四捨五入驗算】 ----------------
                 i_formula_raw = ws_formula.cell(row=row, column=9).value
                 i_data_raw = ws_data.cell(row=row, column=9).value
                 i_check_target = i_formula_raw if i_formula_raw is not None else i_data_raw
@@ -858,7 +1010,7 @@ def background_process_excel(task_id, filepath, original_filename):
                             if abs(j_num - expected_j) > 0.005:
                                 all_calc_errors[row][10].append(f"數量驗算錯誤，I 欄四捨五入後應為 {expected_j}")
 
-                # ---------------- 【需求 3：H1 含「公有地」與 S24 連動檢核 L 欄】 ----------------
+                # ---------------- 【H1 公有地與 S24 連動檢核 L 欄】 ----------------
                 if is_public_land and has_col_B_id:
                     has_illegal_or_no_water = ("無合法" in col_O_val) or ("無水權" in col_O_val)
                     if s24_is_leased_or_false:
@@ -879,12 +1031,11 @@ def background_process_excel(task_id, filepath, original_filename):
                     elif abs(l_rate_parsed - expected_l) > 0.001:
                         all_calc_errors[row][12].append(f"發放比例錯誤 ({l_reason})")
 
-                # ---------------- 【需求 4：驗算 N 欄 = round(round(H * J, 0) * L, 0)】 ----------------
+                # ---------------- 【N 欄 = round(round(H * J, 0) * L, 0)】 ----------------
                 h_raw = ws_data.cell(row=row, column=8).value
                 j_raw = ws_data.cell(row=row, column=10).value
                 l_raw = ws_data.cell(row=row, column=12).value
 
-                # 僅針對有填寫 H 欄與 J 欄的項目驗算 (跳過房屋評點列如第 11 列)
                 if is_pure_number(h_raw) and is_pure_number(j_raw):
                     h_num = to_float(h_raw)
                     j_num = to_float(j_raw)
@@ -973,6 +1124,9 @@ def background_process_excel(task_id, filepath, original_filename):
                 'map_data': map_data,
                 'error_list': error_list,
                 'correction_list': correction_list,
+                'col_width_status': col_width_status,
+                'col_width_error_list': col_width_error_list,
+                'col_width_inspector': col_width_inspector,
                 'structure_info': structure_info,
                 'print_area_str': print_area_str,
                 'max_row': max_row,
@@ -1012,7 +1166,7 @@ def background_process_excel(task_id, filepath, original_filename):
         if os.path.exists(filepath):
             try:
                 os.remove(filepath)
-            except:
+            except Exception:
                 pass
 
 
@@ -1022,23 +1176,16 @@ def background_process_excel(task_id, filepath, original_filename):
 def index():
     record_id = request.args.get('id')
     visible_cols = BUILDING_RULES["visible_cols"]
-    if record_id and record_id in history_db:
-        return render_template_string(
-            HTML_TEMPLATE,
-            record=history_db[record_id],
-            history=history_db,
-            current_id=record_id,
-            visible_cols=visible_cols,
-            get_col_letter=openpyxl.utils.get_column_letter
-        )
-    return render_template_string(
-        HTML_TEMPLATE,
-        record=None,
+    common_ctx = dict(
         history=history_db,
-        current_id=None,
         visible_cols=visible_cols,
+        offset_val=BUILDING_RULES["col_width_xml_offset"],
+        tol_val=BUILDING_RULES["col_width_tolerance"],
         get_col_letter=openpyxl.utils.get_column_letter
     )
+    if record_id and record_id in history_db:
+        return render_template_string(HTML_TEMPLATE, record=history_db[record_id], current_id=record_id, **common_ctx)
+    return render_template_string(HTML_TEMPLATE, record=None, current_id=None, **common_ctx)
 
 @app.route("/upload", methods=["POST"])
 def upload():
