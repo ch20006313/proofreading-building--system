@@ -9,6 +9,8 @@ import ast
 import operator
 import datetime
 import threading
+import zipfile
+import xml.etree.ElementTree as ET
 import os
 import tempfile
 
@@ -593,7 +595,6 @@ BUILTIN_RATING_DB_TXT = """
 
 # ==============================================================================
 # 📚 【建物項目單價與單位資料庫】
-# 格式：(C欄「構造/規格」, D欄「用途」, ...): {"unit": "K欄單位", "price": H欄單價}
 # ==============================================================================
 BUILDING_DB = {
     ("鋼筋混凝土造烟囪", "", ""): {"unit": "㎥", "price": 3999},
@@ -940,6 +941,135 @@ BUILDING_DB = {
 }
 
 # ==============================================================================
+# 🛡️ 【XLSM / XLSX 檔 XML 自動淨化轉換器】
+# 解決 .xlsm 內含 VML 表單控制項、頁首浮水印、外部連結或延伸標籤導致 openpyxl 報錯問題
+# ==============================================================================
+_SKIP_ZIP_PREFIXES = (
+    "xl/vbaproject",
+    "xl/ctrlprops/",
+    "xl/activex/",
+    "xl/drawings/",
+    "xl/charts/",
+    "xl/media/",
+    "xl/printersettings/",
+    "xl/externallinks/",
+    "xl/comments",
+    "xl/threadedcomments/",
+    "customxml/",
+)
+
+_STRIP_SHEET_TAGS = {
+    "drawing",
+    "legacyDrawing",
+    "legacyDrawingHF",
+    "controls",
+    "oleObjects",
+    "extLst",
+    "conditionalFormatting",
+    "dataValidations",
+    "headerFooter",
+    "pageSetup",
+    "ignoredErrors",
+    "tableParts",
+    "smartTags",
+}
+
+_STRIP_REL_KEYWORDS = (
+    "vbaproject",
+    "ctrlprops",
+    "activex",
+    "drawing",
+    "vmldrawing",
+    "chart",
+    "externallink",
+    "printersettings",
+    "customxml",
+    "comments",
+    "threadedcomment",
+)
+
+def _clean_xml_control_chars(xml_bytes):
+    text = xml_bytes.decode("utf-8", errors="replace")
+    return re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", text)
+
+def _sanitize_rels_or_content_types(xml_bytes, is_content_types=False):
+    text = _clean_xml_control_chars(xml_bytes)
+    try:
+        root = ET.fromstring(text)
+        to_remove = []
+        for child in list(root):
+            attrs_joined = " ".join(str(v) for v in child.attrib.values()).lower()
+            if any(kw in attrs_joined for kw in _STRIP_REL_KEYWORDS):
+                to_remove.append(child)
+                continue
+            if is_content_types and child.attrib.get("PartName", "").lower() == "/xl/workbook.xml":
+                child.set(
+                    "ContentType",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+                )
+        for item in to_remove:
+            root.remove(item)
+        return ET.tostring(root, encoding="utf-8", xml_declaration=True)
+    except Exception:
+        return text.encode("utf-8")
+
+def _sanitize_worksheet_xml(xml_bytes):
+    text = _clean_xml_control_chars(xml_bytes)
+    try:
+        root = ET.fromstring(text)
+        for parent in root.iter():
+            to_remove = [
+                child for child in list(parent)
+                if child.tag.split("}")[-1] in _STRIP_SHEET_TAGS
+            ]
+            for child in to_remove:
+                parent.remove(child)
+        return ET.tostring(root, encoding="utf-8", xml_declaration=True)
+    except Exception:
+        return text.encode("utf-8")
+
+def _sanitize_extlst_xml(xml_bytes):
+    text = _clean_xml_control_chars(xml_bytes)
+    try:
+        root = ET.fromstring(text)
+        for parent in root.iter():
+            to_remove = [
+                child for child in list(parent)
+                if child.tag.split("}")[-1] == "extLst"
+            ]
+            for child in to_remove:
+                parent.remove(child)
+        return ET.tostring(root, encoding="utf-8", xml_declaration=True)
+    except Exception:
+        return text.encode("utf-8")
+
+def sanitize_excel_for_openpyxl(src_filepath):
+    """將上傳的 .xlsm / .xlsx 淨化為純淨無干擾標籤的暫存 .xlsx 供 openpyxl 穩定讀取"""
+    clean_filepath = src_filepath + "_sanitized.xlsx"
+    with zipfile.ZipFile(src_filepath, "r") as zin, zipfile.ZipFile(
+        clean_filepath, "w", compression=zipfile.ZIP_DEFLATED
+    ) as zout:
+        for item in zin.infolist():
+            fname_lower = item.filename.lower()
+            if any(fname_lower.startswith(prefix) for prefix in _SKIP_ZIP_PREFIXES):
+                continue
+
+            raw_bytes = zin.read(item.filename)
+            if fname_lower == "[content_types].xml":
+                out_bytes = _sanitize_rels_or_content_types(raw_bytes, is_content_types=True)
+            elif fname_lower.endswith(".rels"):
+                out_bytes = _sanitize_rels_or_content_types(raw_bytes, is_content_types=False)
+            elif fname_lower.startswith("xl/worksheets/sheet") and fname_lower.endswith(".xml"):
+                out_bytes = _sanitize_worksheet_xml(raw_bytes)
+            elif fname_lower in ("xl/workbook.xml", "xl/styles.xml", "xl/sharedstrings.xml"):
+                out_bytes = _sanitize_extlst_xml(raw_bytes)
+            else:
+                out_bytes = raw_bytes
+
+            zout.writestr(item.filename, out_bytes)
+    return clean_filepath
+
+# ==============================================================================
 # 🔧 【核心工具與資料庫解析函式】
 # ==============================================================================
 
@@ -958,7 +1088,7 @@ def parse_rating_db_txt(raw_text):
         floor = parts[2]
         spec1 = parts[3]
         spec2 = parts[4]
-        pts_str = parts[-1]  # 取最後一欄作為評點數，避免中間多打分隔線導致錯位
+        pts_str = parts[-1]
         if not category or not spec1:
             continue
         try:
@@ -2388,14 +2518,18 @@ def process_rating_sheet(ws_data, ws_formula, rating_db_entries, db_source_label
 # 📊 背景處理工作緒 (主估價表＋評點表＋跨表核對)
 # ==============================================================================
 def background_process_excel(task_id, filepath, original_filename):
+    sanitized_filepath = None
     try:
         gc.enable()
 
         # 每次校對皆即時讀取最新的 rating_db.txt (或內建文字庫)
         rating_db_entries, db_source_label = load_rating_db_from_txt()
 
-        wb_data = openpyxl.load_workbook(filepath, data_only=True)
-        wb_formula = openpyxl.load_workbook(filepath, data_only=False)
+        # 自動淨化 .xlsm / .xlsx 內的干擾 XML，避免 openpyxl 報錯
+        sanitized_filepath = sanitize_excel_for_openpyxl(filepath)
+
+        wb_data = openpyxl.load_workbook(sanitized_filepath, data_only=True)
+        wb_formula = openpyxl.load_workbook(sanitized_filepath, data_only=False)
 
         sheets_data = {}
         skipped_sheets = []
@@ -2975,14 +3109,16 @@ def background_process_excel(task_id, filepath, original_filename):
         tasks_db[task_id]['record_id'] = record_id
 
     except Exception as e:
+        detail = f"{e} (底層原因: {e.__cause__})" if getattr(e, "__cause__", None) else str(e)
         tasks_db[task_id]['status'] = 'error'
-        tasks_db[task_id]['message'] = str(e)
+        tasks_db[task_id]['message'] = detail
     finally:
-        if os.path.exists(filepath):
-            try:
-                os.remove(filepath)
-            except Exception:
-                pass
+        for p in (filepath, sanitized_filepath):
+            if p and os.path.exists(p):
+                try:
+                    os.remove(p)
+                except Exception:
+                    pass
 
 
 # --- 路由設定 ---
