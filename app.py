@@ -1276,7 +1276,7 @@ def check_column_widths(ws, visible_cols, preset_widths):
         if enabled and preset_w is not None:
             if abs(est_display_w - preset_w) > tol:
                 is_err = True
-                err_msg = f"{col_letter}欄寬度不符：目前約 {est_display_w:.2f} (XML {raw_w:.2f})，預設應為 {preset_w:.2f}"
+                err_msg = f"{col_letter}欄寬度不符，預設應為 {preset_w:.2f}"
                 col_width_error_list.append({
                     "col": col_letter,
                     "actual": f"{est_display_w:.2f}",
@@ -1738,74 +1738,11 @@ HTML_TEMPLATE = """
                         </div>
                         {% endif %}
 
-                        <!-- 結構探測器 (含欄寬完整對照表) -->
-                        <div class="inspector-box">
-                            <button type="button" class="inspector-toggle" onclick="toggleInspector('{{ s_idx }}')">
-                                🔍 展開/收合「{{ sheet_name }}」各欄欄寬對照、座標與公式結構表
-                            </button>
-                            <div class="inspector-content" id="inspector-{{ s_idx }}">
-                                <p style="margin:0 0 6px 0; font-weight:bold; color:#2c3e50;">📏 本表欄寬度檢測對照表 (偏移補償：{{ offset_val }}、容許誤差：±{{ tol_val }})</p>
-                                <table class="inspector-table">
-                                    <tr>
-                                        <th>欄位</th><th>Excel 換算欄寬</th><th>XML 原始值</th><th>預設標準欄寬</th><th>檢核狀態</th>
-                                    </tr>
-                                    {% for cw in s_data.col_width_inspector %}
-                                    <tr>
-                                        <td><strong>{{ cw.col }} 欄</strong></td>
-                                        <td>{{ cw.est_display }}</td>
-                                        <td style="color:#7f8c8d;">{{ cw.raw_xml }}</td>
-                                        <td>{{ cw.preset }}</td>
-                                        <td>
-                                            {% if cw.is_error %}
-                                                <span style="color:#c0392b; font-weight:bold;">❌ 不符</span>
-                                            {% else %}
-                                                <span style="color:#27ae60; font-weight:bold;">✅ 正常</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </table>
-
-                                <p style="margin:8px 0 6px 0; font-weight:bold; color:#2c3e50;">📋 儲存格座標與原始公式 (共 {{ s_data.structure_info|length }} 格有值)</p>
-                                <table class="inspector-table">
-                                    <tr>
-                                        <th>座標</th><th>顯示數值</th><th>原始公式 / 內容</th><th>字體</th><th>合併範圍</th>
-                                    </tr>
-                                    {% for item in s_data.structure_info %}
-                                    <tr>
-                                        <td><strong>{{ item.coord }}</strong></td>
-                                        <td>{{ item.val }}</td>
-                                        <td style="color:#2980b9; font-family:monospace;">{{ item.formula }}</td>
-                                        <td>{{ item.font_size }}pt</td>
-                                        <td>{{ item.merge_info }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                </table>
-                            </div>
-                        </div>
 
                         {% if s_data.excess_rows %}
                             <p style="color: #c0392b; font-weight: bold; background: #fadbd8; padding: 10px; border-radius: 5px; font-size: 11pt;">⚠️ 注意事項：本工作表未設定列印範圍且資料超過 {{ s_data.max_row }} 列，系統僅校對前 {{ s_data.max_row }} 列。</p>
                         {% endif %}
 
-                        <!-- 欄寬異常專屬警示表 -->
-                        {% if s_data.col_width_error_list %}
-                        <div class="width-panel">
-                            <h4>📏 發現欄位寬度與預設標準不符：</h4>
-                            <table class="width-table">
-                                <tr><th>欄位</th><th>目前欄寬 (Excel 換算)</th><th>XML 原始值</th><th>預設標準欄寬</th><th>差異值</th></tr>
-                                {% for cw in s_data.col_width_error_list %}
-                                <tr>
-                                    <td><strong>{{ cw.col }} 欄</strong></td>
-                                    <td style="color:#c0392b; font-weight:bold;">{{ cw.actual }}</td>
-                                    <td style="color:#7f8c8d;">{{ cw.raw_xml }}</td>
-                                    <td style="color:#27ae60; font-weight:bold;">{{ cw.preset }}</td>
-                                    <td style="color:#c0392b;">{{ cw.diff }}</td>
-                                </tr>
-                                {% endfor %}
-                            </table>
-                        </div>
-                        {% endif %}
 
                         {% if s_data.correction_list %}
                         <div class="correction-panel">
