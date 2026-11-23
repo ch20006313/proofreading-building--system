@@ -19,6 +19,10 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 允許上傳最大 100 M
 history_db = {}
 tasks_db = {}
 
+# 建物評點表純文字資料庫檔案路徑 (與 app.py 放置於同一資料夾)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+RATING_DB_TXT_PATH = os.path.join(BASE_DIR, "rating_db.txt")
+
 # ==============================================================================
 # 🏗️ 【系統檢核參數設定區】
 # ==============================================================================
@@ -75,7 +79,7 @@ RATING_PRESET_COL_WIDTHS = {
 }
 
 # ==============================================================================
-# 📐 【建物評點表 - 第 10~31 列查表項目區間定義 (第 32~33 列改由簷高公式獨立驗算)】
+# 📐 【建物評點表 - 第 10~31 列查表項目區間定義 (第 32~33 列由簷高公式獨立驗算)】
 # ==============================================================================
 RATING_ROW_BLOCKS = [
     {"category": "房屋構造體", "rows": (10, 11)},
@@ -142,7 +146,6 @@ BUILTIN_RATING_DB_TXT = """
 房屋構造體 | 鐵筋混凝土加強磚造(R.C平頂) | 四層以上 | 獨立戶 | | 660
 房屋構造體 | 鐵筋混凝土加強磚造(R.C平頂) | 四層以上 | 連棟式邊戶 | | 610
 房屋構造體 | 鐵筋混凝土加強磚造(R.C平頂) | 四層以上 | 連棟式中間戶 | | 555
-房屋構造體 | 鐵筋混凝土加強磚造(R.C平頂) | 四層以上 | 獨立戶 | | 555
 房屋構造體 | 磚造(二級木屋架) | 平房 | 連棟式邊戶 | | 390
 房屋構造體 | 磚造(二級木屋架) | 平房 | 連棟式中間戶 | | 340
 房屋構造體 | 磚造(二級木屋架) | 平房 | 獨立戶 | | 290
@@ -199,6 +202,8 @@ BUILTIN_RATING_DB_TXT = """
 房屋構造體 | 簡陋空心磚造(R.C平頂) | 二-三層 | 獨立戶 | | 430
 房屋構造體 | 硓砧石造(二級木屋架) | 平房 | 連棟式邊戶 | | 130
 房屋構造體 | 簡陋加強磚造(二級木屋架) | 平房 | 連棟式中間戶 | | 130
+加減牆 | 磚造(二級木屋架) | | 1面無牆(-85/4*1) | | -21.3
+加減牆 | 輕量鐵骨架(鐵屋架) | | 兩面無牆(-25/4*2) | | -12.5
 室內隔牆構造體 | | | RC牆 | | 147
 室內隔牆構造體 | | | 1/2B紅磚 | | 59
 室內隔牆構造體 | | | 檜木造 | | 50
@@ -458,110 +463,110 @@ BUILTIN_RATING_DB_TXT = """
 門窗裝置 | | | 三級木門窗 | 獨立戶 | 42
 門窗裝置 | | | 三級木門窗 | 連棟式邊戶 | 30
 門窗裝置 | | | 三級木門窗 | 連棟式中間戶 | 26
-給水、浴廁設備 | | | 普通汲取式 |  | 30
-給水、浴廁設備 | | | 住宅、普通抽水馬桶、水泥、貼馬賽克浴槽 |  | 80
+給水、浴廁設備 | | | 普通汲取式 | | 30
+給水、浴廁設備 | | | 住宅、普通抽水馬桶、水泥、貼馬賽克浴槽 | | 80
 給水、浴廁設備 | | | 住宅、普通抽水馬桶、水泥、貼馬賽克浴槽 | (無馬桶) | 40
 給水、浴廁設備 | | | 住宅、普通抽水馬桶、水泥、貼馬賽克浴槽 | (無浴槽) | 40
-給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆、國產品點 |  | 100
+給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆、國產品點 | | 100
 給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆、國產品點 | (無馬桶) | 50
 給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆、國產品點 | (無浴槽) | 50
-給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆、外國品點 |  | 130
+給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆、外國品點 | | 130
 給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆、外國品點 | (無馬桶) | 65
 給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆、外國品點 | (無浴槽) | 65
-給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆、國產品點 |  | 135
+給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆、國產品點 | | 135
 給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆、國產品點 | (無馬桶) | 67.5
 給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆、國產品點 | (無浴槽) | 67.5
-給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆、外國品點 |  | 130
+給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆、外國品點 | | 130
 給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆、外國品點 | (無馬桶) | 65
 給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆、外國品點 | (無浴槽) | 65
-給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備、國產品點 |  | 150
+給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備、國產品點 | | 150
 給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備、國產品點 | (無馬桶) | 75
 給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備、國產品點 | (無浴槽) | 75
-給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備、外國品點 |  | 200
+給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備、外國品點 | | 200
 給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備、外國品點 | (無馬桶) | 100
 給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備、外國品點 | (無浴槽) | 100
-給水、浴廁設備 | | | 住宅、普通抽水馬桶、水泥、貼馬賽克浴槽(四處) |  | 160
+給水、浴廁設備 | | | 住宅、普通抽水馬桶、水泥、貼馬賽克浴槽(四處) | | 160
 給水、浴廁設備 | | | 住宅、普通抽水馬桶、水泥、貼馬賽克浴槽(四處) | (無馬桶) | 80
 給水、浴廁設備 | | | 住宅、普通抽水馬桶、水泥、貼馬賽克浴槽(四處) | (無浴槽) | 80
-給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(四處)、國產品點 |  | 200
+給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(四處)、國產品點 | | 200
 給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(四處)、國產品點 | (無馬桶) | 100
 給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(四處)、國產品點 | (無浴槽) | 100
-給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(四處)、外國品點 |  | 260
+給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(四處)、外國品點 | | 260
 給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(四處)、外國品點 | (無馬桶) | 130
 給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(四處)、外國品點 | (無浴槽) | 130
-給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(四處)、國產品點 |  | 270
+給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(四處)、國產品點 | | 270
 給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(四處)、國產品點 | (無馬桶) | 135
 給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(四處)、國產品點 | (無浴槽) | 135
-給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(四處)、外國品點 |  | 260
+給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(四處)、外國品點 | | 260
 給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(四處)、外國品點 | (無馬桶) | 130
 給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(四處)、外國品點 | (無浴槽) | 130
-給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(四處)、國產品點 |  | 300
+給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(四處)、國產品點 | | 300
 給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(四處)、國產品點 | (無馬桶) | 150
 給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(四處)、國產品點 | (無浴槽) | 150
-給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(四處)、外國品點 |  | 400
+給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(四處)、外國品點 | | 400
 給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(四處)、外國品點 | (無馬桶) | 200
 給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(四處)、外國品點 | (無浴槽) | 200
-給水、浴廁設備 | | | 住宅、普通抽水馬桶、水泥、貼馬賽克浴槽(五處) |  | 160
+給水、浴廁設備 | | | 住宅、普通抽水馬桶、水泥、貼馬賽克浴槽(五處) | | 160
 給水、浴廁設備 | | | 住宅、普通抽水馬桶、水泥、貼馬賽克浴槽(五處) | (無馬桶) | 80
 給水、浴廁設備 | | | 住宅、普通抽水馬桶、水泥、貼馬賽克浴槽(五處) | (無浴槽) | 80
-給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(五處)、國產品點 |  | 200
+給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(五處)、國產品點 | | 200
 給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(五處)、國產品點 | (無馬桶) | 100
 給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(五處)、國產品點 | (無浴槽) | 100
-給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(五處)、外國品點 |  | 260
+給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(五處)、外國品點 | | 260
 給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(五處)、外國品點 | (無馬桶) | 130
 給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(五處)、外國品點 | (無浴槽) | 130
-給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(五處)、國產品點 |  | 270
+給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(五處)、國產品點 | | 270
 給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(五處)、國產品點 | (無馬桶) | 135
 給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(五處)、國產品點 | (無浴槽) | 135
-給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(五處)、外國品點 |  | 260
+給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(五處)、外國品點 | | 260
 給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(五處)、外國品點 | (無馬桶) | 130
 給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(五處)、外國品點 | (無浴槽) | 130
-給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(五處)、國產品點 |  | 300
+給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(五處)、國產品點 | | 300
 給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(五處)、國產品點 | (無馬桶) | 150
 給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(五處)、國產品點 | (無浴槽) | 150
-給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(五處)、外國品點 |  | 400
+給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(五處)、外國品點 | | 400
 給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(五處)、外國品點 | (無馬桶) | 200
 給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(五處)、外國品點 | (無浴槽) | 200
-給水、浴廁設備 | | | 住宅、普通抽水馬桶、水泥、貼馬賽克浴槽(六處) |  | 160
+給水、浴廁設備 | | | 住宅、普通抽水馬桶、水泥、貼馬賽克浴槽(六處) | | 160
 給水、浴廁設備 | | | 住宅、普通抽水馬桶、水泥、貼馬賽克浴槽(六處) | (無馬桶) | 80
 給水、浴廁設備 | | | 住宅、普通抽水馬桶、水泥、貼馬賽克浴槽(六處) | (無浴槽) | 80
-給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(六處)、國產品點 |  | 200
+給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(六處)、國產品點 | | 200
 給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(六處)、國產品點 | (無馬桶) | 100
 給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(六處)、國產品點 | (無浴槽) | 100
-給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(六處)、外國品點 |  | 260
+給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(六處)、外國品點 | | 260
 給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(六處)、外國品點 | (無馬桶) | 130
 給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(六處)、外國品點 | (無浴槽) | 130
-給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(六處)、國產品點 |  | 270
+給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(六處)、國產品點 | | 270
 給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(六處)、國產品點 | (無馬桶) | 135
 給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(六處)、國產品點 | (無浴槽) | 135
-給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(六處)、外國品點 |  | 260
+給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(六處)、外國品點 | | 260
 給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(六處)、外國品點 | (無馬桶) | 130
 給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(六處)、外國品點 | (無浴槽) | 130
-給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(六處)、國產品點 |  | 300
+給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(六處)、國產品點 | | 300
 給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(六處)、國產品點 | (無馬桶) | 150
 給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(六處)、國產品點 | (無浴槽) | 150
-給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(六處)、外國品點 |  | 400
+給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(六處)、外國品點 | | 400
 給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(六處)、外國品點 | (無馬桶) | 200
 給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(六處)、外國品點 | (無浴槽) | 200
-給水、浴廁設備 | | | 住宅、普通抽水馬桶、水泥、貼馬賽克浴槽(七處) |  | 240
+給水、浴廁設備 | | | 住宅、普通抽水馬桶、水泥、貼馬賽克浴槽(七處) | | 240
 給水、浴廁設備 | | | 住宅、普通抽水馬桶、水泥、貼馬賽克浴槽(七處) | (無馬桶) | 120
 給水、浴廁設備 | | | 住宅、普通抽水馬桶、水泥、貼馬賽克浴槽(七處) | (無浴槽) | 120
-給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(七處)、國產品點 |  | 300
+給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(七處)、國產品點 | | 300
 給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(七處)、國產品點 | (無馬桶) | 150
 給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(七處)、國產品點 | (無浴槽) | 150
-給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(七處)、外國品點 |  | 390
+給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(七處)、外國品點 | | 390
 給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(七處)、外國品點 | (無馬桶) | 195
 給水、浴廁設備 | | | 住宅套房、高級沖水馬桶、水泥磁漆浴盆(七處)、外國品點 | (無浴槽) | 195
-給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(七處)、國產品點 |  | 405
+給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(七處)、國產品點 | | 405
 給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(七處)、國產品點 | (無馬桶) | 202.5
 給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(七處)、國產品點 | (無浴槽) | 202.5
-給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(七處)外國品點 |  | 390
+給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(七處)外國品點 | | 390
 給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(七處)外國品點 | (無馬桶) | 195
 給水、浴廁設備 | | | 營業建物套房設備、玻璃纖維、浴盆(七處)外國品點 | (無浴槽) | 195
-給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(七處)、國產品點 |  | 450
+給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(七處)、國產品點 | | 450
 給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(七處)、國產品點 | (無馬桶) | 225
 給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(七處)、國產品點 | (無浴槽) | 225
-給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(七處)、外國品點 |  | 600
+給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(七處)、外國品點 | | 600
 給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(七處)、外國品點 | (無馬桶) | 300
 給水、浴廁設備 | | | 豪華別墅、大飯店套房、浴室高級設備(七處)、外國品點 | (無浴槽) | 300
 電器設備(含燈具) | | | 電泡、普通日光燈露出配線簡單設備 | (工廠庫房) | 30
@@ -575,20 +580,20 @@ BUILTIN_RATING_DB_TXT = """
 電器設備(含燈具) | | | 豪華燈具、隱埋式豪華設備 | (店舖住宅) | 75
 電器設備(含燈具) | | | 豪華燈具、隱埋式豪華設備 | (高級建築) | 100
 電器設備(含燈具) | | | 豪華設備燈具並附有自家護電 | (高級建築) | 100
-窗加設備柵(鐵窗) | | | 普通型 | | 獨立戶 | 100
-窗加設備柵(鐵窗) | | | 普通型 | | 連棟式邊戶 | 75
-窗加設備柵(鐵窗) | | | 普通型 | | 連棟式中間戶 | 60
-窗加設備柵(鐵窗) | | | 美術型 | | 獨立戶 | 30
-窗加設備柵(鐵窗) | | | 美術型 | | 連棟式邊戶 | 15
-窗加設備柵(鐵窗) | | | 美術型 | | 連棟式中間戶 | 12
-窗加設備柵(鐵窗) | | | 豪華型 | | 獨立戶 | 20
-窗加設備柵(鐵窗) | | | 豪華型 | | 連棟式邊戶 | 12
-窗加設備柵(鐵窗) | | | 豪華型 | | 連棟式中間戶 | 10
+窗加設備柵(鐵窗) | | | 普通型 | 獨立戶 | 100
+窗加設備柵(鐵窗) | | | 普通型 | 連棟式邊戶 | 75
+窗加設備柵(鐵窗) | | | 普通型 | 連棟式中間戶 | 60
+窗加設備柵(鐵窗) | | | 美術型 | 獨立戶 | 30
+窗加設備柵(鐵窗) | | | 美術型 | 連棟式邊戶 | 15
+窗加設備柵(鐵窗) | | | 美術型 | 連棟式中間戶 | 12
+窗加設備柵(鐵窗) | | | 豪華型 | 獨立戶 | 20
+窗加設備柵(鐵窗) | | | 豪華型 | 連棟式邊戶 | 12
+窗加設備柵(鐵窗) | | | 豪華型 | 連棟式中間戶 | 10
 """
 
 # ==============================================================================
 # 📚 【建物項目單價與單位資料庫】
-# 格式：(C欄「構造/規格」, D欄「用途」): {"unit": "K欄單位", "price": H欄單價}
+# 格式：(C欄「構造/規格」, D欄「用途」, ...): {"unit": "K欄單位", "price": H欄單價}
 # ==============================================================================
 BUILDING_DB = {
     ("鋼筋混凝土造烟囪", "", ""): {"unit": "㎥", "price": 3999},
@@ -934,6 +939,173 @@ BUILDING_DB = {
     ("竹筏遷移", "", ""): {"unit": "式", "price": 1400},
 }
 
+# ==============================================================================
+# 🔧 【核心工具與資料庫解析函式】
+# ==============================================================================
+
+def parse_rating_db_txt(raw_text):
+    """解析以 | 分隔 6 欄位的純文字評點資料庫"""
+    entries = []
+    for line in raw_text.splitlines():
+        s = line.strip()
+        if not s or s.startswith("#"):
+            continue
+        parts = [p.strip() for p in s.split("|")]
+        if len(parts) < 6:
+            continue
+        category = parts[0]
+        structure = parts[1]
+        floor = parts[2]
+        spec1 = parts[3]
+        spec2 = parts[4]
+        pts_str = parts[-1]  # 取最後一欄作為評點數，避免中間多打分隔線導致錯位
+        if not category or not spec1:
+            continue
+        try:
+            pts = float(pts_str)
+            if pts.is_integer():
+                pts = int(pts)
+        except Exception:
+            continue
+        entries.append({
+            "category": category,
+            "structure": structure,
+            "floor": floor,
+            "spec1": spec1,
+            "spec2": spec2,
+            "points": pts,
+        })
+    return entries
+
+def load_rating_db_from_txt():
+    """優先讀取同目錄的 rating_db.txt (支援 UTF-8 與 Big5/CP950)，若無檔案則改用內建文字庫"""
+    if os.path.exists(RATING_DB_TXT_PATH):
+        for enc in ("utf-8-sig", "utf-8", "cp950", "big5"):
+            try:
+                with open(RATING_DB_TXT_PATH, "r", encoding=enc) as f:
+                    content = f.read()
+                parsed = parse_rating_db_txt(content)
+                return parsed, f"rating_db.txt ({len(parsed)} 筆)"
+            except UnicodeDecodeError:
+                continue
+            except Exception:
+                break
+    parsed = parse_rating_db_txt(BUILTIN_RATING_DB_TXT)
+    return parsed, f"程式內建文字庫 ({len(parsed)} 筆)"
+
+def normalize_rating_text(text):
+    """正規化評點文字 (去除換行、空白，並統一全半形括號與符號以提升比對容錯率)"""
+    if text is None:
+        return ""
+    s = str(text)
+    s = s.replace("\r", "").replace("\n", "").replace(" ", "").replace("\u3000", "")
+    s = s.replace("（", "(").replace("）", ")").replace("，", ",").replace("－", "-").replace("＊", "*").replace("／", "/")
+    return s.strip()
+
+def get_rating_block_specs(ws_data, r_start, r_end, block_col, merged_ranges):
+    """讀取評點表某項目區間的 (規格1, 規格2)，自動判別上下列是否合併"""
+    raw1 = get_cell_value_safe(ws_data, r_start, block_col, merged_ranges)
+    s1 = str(raw1).replace("\r", "").replace("\n", "").strip() if raw1 is not None else ""
+    if r_end <= r_start:
+        return s1, ""
+
+    same_merge = False
+    for mr in merged_ranges:
+        min_col, min_row, max_mr_col, mr_max_row = mr.bounds
+        if min_col <= block_col <= max_mr_col and min_row <= r_start <= mr_max_row and min_row <= r_end <= mr_max_row:
+            same_merge = True
+            break
+
+    if same_merge:
+        return s1, ""
+
+    raw2 = get_cell_value_safe(ws_data, r_end, block_col, merged_ranges)
+    s2 = str(raw2).replace("\r", "").replace("\n", "").strip() if raw2 is not None else ""
+    return s1, s2
+
+def match_rating_db_entry(category, structure_val, floor_val, spec1, spec2, db_entries):
+    """
+    依項目類別、構造別、樓層別、規格內容在評點資料庫中尋找最精準的規則。
+    優先權：構造+樓層皆符合 > 僅構造符合 > 僅樓層符合 > 通用規則(構造與樓層皆留空)
+    """
+    norm_cat = normalize_rating_text(category)
+    norm_struct = normalize_rating_text(structure_val)
+    norm_floor = normalize_rating_text(floor_val)
+    norm_s1 = normalize_rating_text(spec1)
+    norm_s2 = normalize_rating_text(spec2)
+    norm_combined = norm_s1 + norm_s2
+
+    if not norm_combined:
+        return None
+
+    best_match = None
+    best_priority = -1
+
+    for entry in db_entries:
+        if normalize_rating_text(entry.get("category", "")) != norm_cat:
+            continue
+
+        e_s1 = normalize_rating_text(entry.get("spec1", ""))
+        e_s2 = normalize_rating_text(entry.get("spec2", ""))
+        e_combined = e_s1 + e_s2
+        if not e_combined:
+            continue
+
+        spec_matched = (norm_s1 == e_s1 and norm_s2 == e_s2) or (norm_combined == e_combined)
+        if not spec_matched:
+            continue
+
+        e_struct = normalize_rating_text(entry.get("structure", ""))
+        e_floor = normalize_rating_text(entry.get("floor", ""))
+
+        if e_struct and e_struct != norm_struct:
+            continue
+        if e_floor and e_floor != norm_floor:
+            continue
+
+        priority = (2 if e_struct else 0) + (1 if e_floor else 0)
+        if priority > best_priority:
+            best_priority = priority
+            best_match = entry
+
+    return best_match
+
+def parse_eaves_height(val):
+    """解析第 32 列簷高數值 (支援 5、5.0、'5M'、'2.7M'、'4.25公尺')"""
+    if val is None or isinstance(val, (bool, datetime.date, datetime.datetime)):
+        return None
+    if isinstance(val, (int, float)):
+        return float(val) if not math.isnan(val) else None
+    s = str(val).replace("\r", "").replace("\n", "").strip()
+    if not s:
+        return None
+    m = re.match(r'^([0-9]+(?:\.[0-9]+)?)\s*(?:[Mm]|公尺|米)?$', s)
+    if m:
+        try:
+            return float(m.group(1))
+        except Exception:
+            return None
+    return None
+
+def calc_eaves_height_adjustment(height_m, base_sum_7_31):
+    """
+    驗算簷高增減點數：
+    - 當簷高 > 4：每增加 0.1 增加 1%，未達 0.1 不列計
+    - 當簷高 < 2.5：每減少 0.1 減少 1%，未達 0.1 不列計
+    - 介於 2.5 ~ 4：增減點數為 0
+    回傳 (steps_signed: int, expected_pts: float)
+    """
+    if height_m > 4.0:
+        steps = math.floor((height_m - 4.0) * 10.0 + 1e-9)
+        expected = custom_round(steps * 0.01 * base_sum_7_31, 1)
+        return steps, expected
+    elif height_m < 2.5:
+        steps = math.floor((2.5 - height_m) * 10.0 + 1e-9)
+        expected = custom_round(-steps * 0.01 * base_sum_7_31, 1)
+        return -steps, expected
+    else:
+        return 0, 0.0
+
 def custom_round(value, ndigits=0):
     """標準四捨五入 (避免 Python 銀行家捨入誤差)"""
     multiplier = 10 ** ndigits
@@ -1016,9 +1188,7 @@ def normalize_id_str(val):
     return s
 
 def check_column_widths(ws, visible_cols, preset_widths):
-    """
-    讀取工作表各欄實際 XML 欄寬並展開連續區間，換算為 Excel 顯示欄寬後與指定標準值比對。
-    """
+    """讀取工作表各欄實際 XML 欄寬並展開連續區間，換算為 Excel 顯示欄寬後與指定標準值比對"""
     offset = BUILDING_RULES["col_width_xml_offset"]
     tol = BUILDING_RULES["col_width_tolerance"]
     enabled = BUILDING_RULES["enable_col_width_check"]
@@ -1270,11 +1440,11 @@ def extract_max_row_from_print_area(print_area):
                 max_r = r_num
     return max_r
 
-def sum_rating_block_scores(ws_r_data, score_col):
-    """需求 2：加總評點表指定評點欄第 7 列至第 33 列之數值，回傳 (has_any_score, total_rounded_1)"""
+def sum_rating_block_range(ws_r_data, score_col, start_row, end_row):
+    """加總評點表指定評點欄 start_row 至 end_row 之數值，回傳 (has_any_score, total_rounded_1)"""
     total = 0.0
     has_any = False
-    for r in range(7, 34):
+    for r in range(start_row, end_row + 1):
         val = ws_r_data.cell(row=r, column=score_col).value
         if is_pure_number(val):
             total += to_float(val)
@@ -1286,10 +1456,11 @@ HTML_TEMPLATE = """
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>建築改良物調查估價表 - 智能視覺化校對系統</title>
+    <title>建築改良物調查估價表＆評點表 - 智能視覺化校對系統</title>
     <style>
         body { font-family: '微軟正黑體', sans-serif; background-color: #f4f7f6; margin: 0; padding: 14px 16px; color: #333; scroll-behavior: smooth; }
         .header-title { text-align: center; color: #2c3e50; margin: 4px 0 16px 0; font-size: 22px; }
+
         .layout-container { display: flex; gap: 16px; max-width: 98%; width: 100%; margin: auto; align-items: flex-start; }
         .main-content { flex: 1; background: #fff; padding: 22px 24px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; min-width: 0; }
         .upload-box { border: 2px dashed #3498db; padding: 22px; text-align: center; border-radius: 10px; margin-bottom: 18px; background: #f8fbff; transition: 0.3s; }
@@ -1301,7 +1472,7 @@ HTML_TEMPLATE = """
         .progress-bar-container { width: 80%; background-color: #e0e0e0; border-radius: 8px; margin: 15px auto; height: 20px; overflow: hidden; }
         .progress-bar { height: 100%; background-color: #2ecc71; width: 0%; transition: width 0.4s ease; }
 
-        /* 需求 3：報表上方工具列與「一鍵只顯示有錯誤的工作表」按鈕 */
+        /* 報表上方工具列 */
         .report-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 2px solid #ecf0f1; }
         .toolbar-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .filter-status { font-size: 13px; color: #555; background: #f2f4f6; padding: 5px 10px; border-radius: 5px; }
@@ -1328,12 +1499,15 @@ HTML_TEMPLATE = """
         .width-table th, .width-table td { padding: 7px 10px; border: 1px solid #f5c6cb; text-align: center; font-size: 13px; }
         .width-table th { background: #f8d7da; color: #922b21; }
         
-        /* 結構探測器面板 */
-        .inspector-box { background: #eef6ff; border: 1px solid #b8daff; border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; }
-        .inspector-toggle { background: #2980b9; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; }
+        /* 結構探測器與評點資料庫比對明細面板 */
+        .inspector-box { background: #eef6ff; border: 1px solid #b8daff; border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; }
+        .audit-box { background: #f5eef8; border: 1px solid #d7bde2; border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; }
+        .inspector-toggle { background: #2980b9; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; font-family: inherit; }
         .inspector-toggle:hover { background: #1f6391; }
+        .audit-toggle { background: #8e44ad; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; font-family: inherit; }
+        .audit-toggle:hover { background: #732d91; }
         .inspector-content { display: none; margin-top: 10px; max-height: 360px; overflow-y: auto; background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 10px; font-size: 12px; }
-        .inspector-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+        .inspector-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
         .inspector-table th, .inspector-table td { border: 1px solid #ddd; padding: 5px 8px; text-align: left; }
         .inspector-table th { background: #f1f5f9; position: sticky; top: 0; }
 
@@ -1391,6 +1565,7 @@ HTML_TEMPLATE = """
 </head>
 <body id="pageTop">
     <h2 class="header-title">🏢 建築改良物調查估價表＆評點表 - 智能視覺化校對系統</h2>
+
     <div class="layout-container">
         <div class="main-content">
             
@@ -1405,165 +1580,11 @@ HTML_TEMPLATE = """
             <!-- 載入動畫區塊 -->
             <div id="loadingOverlay">
                 <div class="spinner"></div>
-                <h3 style="color: #2980b9;">建物估價表與評點表正在背景火速解析與跨表核對中，請稍候... (<span id="progressText">0%</span>)</h3>
+                <h3 style="color: #2980b9;">建物估價表與評點表正在背景火速解析與資料庫核對中，請稍候... (<span id="progressText">0%</span>)</h3>
                 <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
                 <p style="color: #e74c3c; font-weight: bold; font-size: 11pt;">⚠️ 若工作表數量龐大，可能需要數分鐘處理，請勿關閉或重新整理網頁！</p>
                 <p id="currentSheetText" style="color: #7f8c8d; font-size: 13px;"></p>
             </div>
-
-            <script>
-                document.getElementById('uploadForm').onsubmit = async function(e) {
-                    e.preventDefault();
-                    let formData = new FormData(this);
-                    
-                    document.getElementById('uploadBox').style.display = 'none';
-                    document.getElementById('loadingOverlay').style.display = 'block';
-                    if(document.getElementById('reportContainer')) {
-                        document.getElementById('reportContainer').style.display = 'none';
-                    }
-
-                    try {
-                        let response = await fetch('/upload', { method: 'POST', body: formData });
-                        let data = await response.json();
-                        
-                        if (data.task_id) {
-                            checkTaskStatus(data.task_id);
-                        } else {
-                            alert("上傳失敗: " + (data.error || "未知錯誤"));
-                            location.reload();
-                        }
-                    } catch (err) {
-                        alert("網路連線錯誤，請重試。");
-                        location.reload();
-                    }
-                };
-
-                async function checkTaskStatus(taskId) {
-                    try {
-                        let response = await fetch('/status/' + taskId);
-                        let data = await response.json();
-                        
-                        if (data.status === 'processing') {
-                            document.getElementById('progressText').innerText = data.progress + "%";
-                            document.getElementById('progressBar').style.width = data.progress + "%";
-                            if (data.current_sheet) {
-                                document.getElementById('currentSheetText').innerText = "目前正在處理: " + data.current_sheet;
-                            }
-                            setTimeout(() => checkTaskStatus(taskId), 2000);
-                        } else if (data.status === 'completed') {
-                            document.getElementById('progressText').innerText = "100%";
-                            document.getElementById('progressBar').style.width = "100%";
-                            window.location.href = '/?id=' + data.record_id;
-                        } else if (data.status === 'error') {
-                            alert("背景運算發生錯誤: " + data.message);
-                            location.reload();
-                        }
-                    } catch (err) {
-                        setTimeout(() => checkTaskStatus(taskId), 2000);
-                    }
-                }
-
-                function toggleHistory() {
-                    let content = document.getElementById('historyContent');
-                    content.style.display = (content.style.display === 'none') ? 'block' : 'none';
-                }
-
-                function toggleSheet(sheetId) {
-                    let content = document.getElementById('content-' + sheetId);
-                    let icon = document.getElementById('icon-' + sheetId);
-                    if (content.style.display === 'none') {
-                        content.style.display = 'block';
-                        icon.innerHTML = '▼';
-                    } else {
-                        content.style.display = 'none';
-                        icon.innerHTML = '▲';
-                    }
-                }
-
-                function toggleInspector(sheetId) {
-                    let box = document.getElementById('inspector-' + sheetId);
-                    box.style.display = (box.style.display === 'block') ? 'none' : 'block';
-                }
-
-                function scrollToTop() {
-                    const uploadBox = document.getElementById('uploadBox');
-                    if (uploadBox) {
-                        uploadBox.style.display = 'block';
-                    }
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-
-                async function confirmClearHistory() {
-                    if (confirm("⚠️ 確定要清除所有瀏覽紀錄與暫存資料嗎？\\n\\n清除後可釋放伺服器記憶體避免卡頓，但已校對的歷史紀錄將無法復原。")) {
-                        try {
-                            let response = await fetch('/clear_history', { method: 'POST' });
-                            let data = await response.json();
-                            if (data.status === 'cleared') {
-                                window.location.href = '/';
-                            }
-                        } catch (err) {
-                            alert("清除紀錄時發生錯誤，請重試。");
-                        }
-                    }
-                }
-
-                // 需求 3：一鍵只顯示有錯誤的工作表（預設關閉，每次點擊皆跳出確認提醒）
-                let onlyErrorsMode = false;
-                function toggleErrorSheetsFilter() {
-                    const sheets = document.querySelectorAll('.sheet-container');
-                    let errorSheetCount = 0;
-                    sheets.forEach(el => {
-                        if (el.getAttribute('data-has-error') === 'true') {
-                            errorSheetCount++;
-                        }
-                    });
-
-                    if (!onlyErrorsMode) {
-                        const confirmMsg = "⚠️ 確定要開啟「只顯示有錯誤的工作表」篩選嗎？\\n\\n本次共校對 " + sheets.length + " 張工作表，其中 " + errorSheetCount + " 張有異常。\\n開啟後將暫時隱藏所有無錯誤（✅）的工作表。";
-                        if (!confirm(confirmMsg)) {
-                            return;
-                        }
-
-                        onlyErrorsMode = true;
-                        sheets.forEach(el => {
-                            if (el.getAttribute('data-has-error') !== 'true') {
-                                el.style.display = 'none';
-                            } else {
-                                el.style.display = 'block';
-                            }
-                        });
-
-                        const btn = document.getElementById('errorFilterBtn');
-                        btn.classList.add('active');
-                        btn.innerText = "📋 恢復顯示全部工作表";
-                        document.getElementById('filterStatusText').innerText = "篩選中：僅顯示有錯誤 (" + errorSheetCount + " / " + sheets.length + " 張)";
-
-                        const emptyBanner = document.getElementById('noErrorSheetsBanner');
-                        if (emptyBanner) {
-                            emptyBanner.style.display = (errorSheetCount === 0) ? 'block' : 'none';
-                        }
-                    } else {
-                        if (!confirm("⚠️ 確定要關閉篩選並「恢復顯示全部工作表」嗎？")) {
-                            return;
-                        }
-
-                        onlyErrorsMode = false;
-                        sheets.forEach(el => {
-                            el.style.display = 'block';
-                        });
-
-                        const btn = document.getElementById('errorFilterBtn');
-                        btn.classList.remove('active');
-                        btn.innerText = "🔍 一鍵只顯示有錯誤的工作表";
-                        document.getElementById('filterStatusText').innerText = "顯示中：全部工作表 (共 " + sheets.length + " 張)";
-
-                        const emptyBanner = document.getElementById('noErrorSheetsBanner');
-                        if (emptyBanner) {
-                            emptyBanner.style.display = 'none';
-                        }
-                    }
-                }
-            </script>
 
             <!-- 渲染報表區塊 -->
             {% if record %}
@@ -1578,7 +1599,7 @@ HTML_TEMPLATE = """
                 
                 {% if record.skipped_sheets %}
                 <div class="skipped-info">
-                    ⏭️ 已自動略過 {{ record.skipped_sheets|length }} 張非校對工作表（照片 / 附表 / 地籍資料 / 值 / A）：{{ record.skipped_sheets|join('、') }}
+                    ⏭️ 已自動略過 {{ record.skipped_sheets|length }} 張非校對工作表：{{ record.skipped_sheets|join('、') }}
                 </div>
                 {% endif %}
 
@@ -1607,9 +1628,13 @@ HTML_TEMPLATE = """
                         <div class="meta-badges">
                             {% if s_data.sheet_type == 'rating' %}
                                 <span class="badge">檢核範圍：D～M 欄 (第 1～{{ s_data.max_row }} 列)</span>
-                                <span class="badge">評點加總：第 7～33 列</span>
+                                <span class="badge">評點加總：第 7～33 列 (含簷高驗算)</span>
                                 <span class="badge">字體檢核：D5:M35 須為 12pt</span>
                                 <span class="badge">已填寫棟數：{{ s_data.meta.active_blocks }} 棟</span>
+                                <span class="badge">TXT 資料庫來源：{{ s_data.meta.db_source_label }}</span>
+                                <span class="badge {% if s_data.meta.db_mismatch_count > 0 %}badge-err{% else %}badge-ok{% endif %}">
+                                    📚 資料庫比對：符合 {{ s_data.meta.db_matched_ok }} / 異常 {{ s_data.meta.db_mismatch_count }} / 未收錄 {{ s_data.meta.db_unlisted_count }}
+                                </span>
                             {% else %}
                                 <span class="badge">H1：{{ s_data.meta.h1_text or '(空)' }}</span>
                                 <span class="badge">S24：{{ s_data.meta.s24_text or '(空)' }}</span>
@@ -1623,6 +1648,47 @@ HTML_TEMPLATE = """
                                 <span class="badge badge-err">📏 欄寬異常：{{ s_data.col_width_error_list|length }} 欄</span>
                             {% endif %}
                         </div>
+
+                        <!-- 評點表專屬：TXT 評點資料庫比對明細 (唯讀檢視) -->
+                        {% if s_data.sheet_type == 'rating' and s_data.rating_db_audit %}
+                        <div class="audit-box">
+                            <button type="button" class="audit-toggle" onclick="toggleAudit('{{ s_idx }}')">
+                                📚 展開/收合「{{ sheet_name }}」TXT 評點資料庫比對明細 (共 {{ s_data.rating_db_audit|length }} 筆項目)
+                            </button>
+                            <div class="inspector-content" id="audit-{{ s_idx }}">
+                                <table class="inspector-table">
+                                    <tr>
+                                        <th>棟別 / 座標</th>
+                                        <th>項目類別</th>
+                                        <th>構造 / 樓層</th>
+                                        <th>規格內容</th>
+                                        <th>Excel 點數</th>
+                                        <th>資料庫標準</th>
+                                        <th>比對狀態</th>
+                                    </tr>
+                                    {% for a in s_data.rating_db_audit %}
+                                    <tr>
+                                        <td><strong>{{ a.block_label }}</strong> ({{ a.score_coord }})</td>
+                                        <td>{{ a.category }}</td>
+                                        <td>{{ a.structure or '-' }} / {{ a.floor or '-' }}</td>
+                                        <td>{{ a.spec1 }}{% if a.spec2 %} <span style="color:#7f8c8d;">| {{ a.spec2 }}</span>{% endif %}</td>
+                                        <td>{{ a.excel_points }}</td>
+                                        <td>{{ a.db_points }}</td>
+                                        <td>
+                                            {% if a.status == 'ok' %}
+                                                <span style="color:#27ae60; font-weight:bold;">✅ 相符</span>
+                                            {% elif a.status == 'mismatch' %}
+                                                <span style="color:#c0392b; font-weight:bold;">❌ 點數不符</span>
+                                            {% else %}
+                                                <span style="color:#7f8c8d;">⚪ 未收錄於 TXT</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </table>
+                            </div>
+                        </div>
+                        {% endif %}
 
                         <!-- 結構探測器 (含欄寬完整對照表) -->
                         <div class="inspector-box">
@@ -1695,7 +1761,7 @@ HTML_TEMPLATE = """
 
                         {% if s_data.correction_list %}
                         <div class="correction-panel">
-                            <h4>⚠️ 發現「跨表核對 / 小計合計 / 評點加總 / 面積算式」與系統運算不符：</h4>
+                            <h4>⚠️ 發現「評點資料庫點數 / 簷高增減點數 / 跨表核對 / 小計合計 / 面積算式」與系統校驗不符：</h4>
                             <table class="correction-table">
                                 <tr><th>位置</th><th>檢核項目</th><th>上傳檔案數值</th><th>系統校驗正確數值</th></tr>
                                 {% for c in s_data.correction_list %}
@@ -1789,19 +1855,178 @@ HTML_TEMPLATE = """
             </div>
         </div>
     </div>
+
+    <script>
+        document.getElementById('uploadForm').onsubmit = async function(e) {
+            e.preventDefault();
+            let formData = new FormData(this);
+            
+            document.getElementById('uploadBox').style.display = 'none';
+            document.getElementById('loadingOverlay').style.display = 'block';
+            if(document.getElementById('reportContainer')) {
+                document.getElementById('reportContainer').style.display = 'none';
+            }
+
+            try {
+                let response = await fetch('/upload', { method: 'POST', body: formData });
+                let data = await response.json();
+                
+                if (data.task_id) {
+                    checkTaskStatus(data.task_id);
+                } else {
+                    alert("上傳失敗: " + (data.error || "未知錯誤"));
+                    location.reload();
+                }
+            } catch (err) {
+                alert("網路連線錯誤，請重試。");
+                location.reload();
+            }
+        };
+
+        async function checkTaskStatus(taskId) {
+            try {
+                let response = await fetch('/status/' + taskId);
+                let data = await response.json();
+                
+                if (data.status === 'processing') {
+                    document.getElementById('progressText').innerText = data.progress + "%";
+                    document.getElementById('progressBar').style.width = data.progress + "%";
+                    if (data.current_sheet) {
+                        document.getElementById('currentSheetText').innerText = "目前正在處理: " + data.current_sheet;
+                    }
+                    setTimeout(() => checkTaskStatus(taskId), 2000);
+                } else if (data.status === 'completed') {
+                    document.getElementById('progressText').innerText = "100%";
+                    document.getElementById('progressBar').style.width = "100%";
+                    window.location.href = '/?id=' + data.record_id;
+                } else if (data.status === 'error') {
+                    alert("背景運算發生錯誤: " + data.message);
+                    location.reload();
+                }
+            } catch (err) {
+                setTimeout(() => checkTaskStatus(taskId), 2000);
+            }
+        }
+
+        function toggleHistory() {
+            let content = document.getElementById('historyContent');
+            content.style.display = (content.style.display === 'none') ? 'block' : 'none';
+        }
+
+        function toggleSheet(sheetId) {
+            let content = document.getElementById('content-' + sheetId);
+            let icon = document.getElementById('icon-' + sheetId);
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                icon.innerHTML = '▼';
+            } else {
+                content.style.display = 'none';
+                icon.innerHTML = '▲';
+            }
+        }
+
+        function toggleInspector(sheetId) {
+            let box = document.getElementById('inspector-' + sheetId);
+            box.style.display = (box.style.display === 'block') ? 'none' : 'block';
+        }
+
+        function toggleAudit(sheetId) {
+            let box = document.getElementById('audit-' + sheetId);
+            box.style.display = (box.style.display === 'block') ? 'none' : 'block';
+        }
+
+        function scrollToTop() {
+            const uploadBox = document.getElementById('uploadBox');
+            if (uploadBox) {
+                uploadBox.style.display = 'block';
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function confirmClearHistory() {
+            if (confirm("⚠️ 確定要清除所有瀏覽紀錄與暫存資料嗎？\\n\\n清除後可釋放伺服器記憶體避免卡頓，但已校對的歷史紀錄將無法復原。")) {
+                try {
+                    let response = await fetch('/clear_history', { method: 'POST' });
+                    let data = await response.json();
+                    if (data.status === 'cleared') {
+                        window.location.href = '/';
+                    }
+                } catch (err) {
+                    alert("清除紀錄時發生錯誤，請重試。");
+                }
+            }
+        }
+
+        let onlyErrorsMode = false;
+        function toggleErrorSheetsFilter() {
+            const sheets = document.querySelectorAll('.sheet-container');
+            let errorSheetCount = 0;
+            sheets.forEach(el => {
+                if (el.getAttribute('data-has-error') === 'true') {
+                    errorSheetCount++;
+                }
+            });
+
+            if (!onlyErrorsMode) {
+                const confirmMsg = "⚠️ 確定要開啟「只顯示有錯誤的工作表」篩選嗎？\\n\\n本次共校對 " + sheets.length + " 張工作表，其中 " + errorSheetCount + " 張有異常。\\n開啟後將暫時隱藏所有無錯誤（✅）的工作表。";
+                if (!confirm(confirmMsg)) {
+                    return;
+                }
+
+                onlyErrorsMode = true;
+                sheets.forEach(el => {
+                    if (el.getAttribute('data-has-error') !== 'true') {
+                        el.style.display = 'none';
+                    } else {
+                        el.style.display = 'block';
+                    }
+                });
+
+                const btn = document.getElementById('errorFilterBtn');
+                btn.classList.add('active');
+                btn.innerText = "📋 恢復顯示全部工作表";
+                document.getElementById('filterStatusText').innerText = "篩選中：僅顯示有錯誤 (" + errorSheetCount + " / " + sheets.length + " 張)";
+
+                const emptyBanner = document.getElementById('noErrorSheetsBanner');
+                if (emptyBanner) {
+                    emptyBanner.style.display = (errorSheetCount === 0) ? 'block' : 'none';
+                }
+            } else {
+                if (!confirm("⚠️ 確定要關閉篩選並「恢復顯示全部工作表」嗎？")) {
+                    return;
+                }
+
+                onlyErrorsMode = false;
+                sheets.forEach(el => {
+                    el.style.display = 'block';
+                });
+
+                const btn = document.getElementById('errorFilterBtn');
+                btn.classList.remove('active');
+                btn.innerText = "🔍 一鍵只顯示有錯誤的工作表";
+                document.getElementById('filterStatusText').innerText = "顯示中：全部工作表 (共 " + sheets.length + " 張)";
+
+                const emptyBanner = document.getElementById('noErrorSheetsBanner');
+                if (emptyBanner) {
+                    emptyBanner.style.display = 'none';
+                }
+            }
+        }
+    </script>
 </body>
 </html>
 """
 
 # ==============================================================================
-# 🏢 處理「建物評點表」獨立檢核 (第 7~33 列納入加總)
+# 🏢 處理「建物評點表」獨立檢核 (含 TXT 資料庫比對 + 簷高增減公式驗算 + 第 7~33 列加總)
 # ==============================================================================
-def process_rating_sheet(ws_data, ws_formula):
+def process_rating_sheet(ws_data, ws_formula, rating_db_entries, db_source_label):
     visible_cols = BUILDING_RULES["rating_visible_cols"]  # D~M (4~13)
     error_list = []
     map_data = {}
     correction_list = []
     structure_info = []
+    rating_db_audit = []
 
     col_width_status, col_width_error_list, col_width_inspector = check_column_widths(
         ws_formula, visible_cols, RATING_PRESET_COL_WIDTHS
@@ -1818,17 +2043,30 @@ def process_rating_sheet(ws_data, ws_formula):
 
     all_calc_errors = {r: {c: [] for c in range(1, 21)} for r in range(1, max_row + 1)}
     active_blocks = 0
+    db_matched_ok = 0
+    db_mismatch_count = 0
+    db_unlisted_count = 0
 
     # 依序檢核 4 棟建物區塊：F/G (6,7), H/I (8,9), J/K (10,11), L/M (12,13)
-    for block_col in [6, 8, 10, 12]:
+    for b_idx, block_col in enumerate([6, 8, 10, 12], start=1):
         score_col = block_col + 1
         col_letter = openpyxl.utils.get_column_letter(block_col)
         score_col_letter = openpyxl.utils.get_column_letter(score_col)
 
         r5_val = get_cell_value_safe(ws_data, 5, block_col, merged_ranges)
         has_r5 = (r5_val is not None and str(r5_val).strip() != "")
+        block_id_str = normalize_id_str(r5_val) or f"第{b_idx}棟"
+        block_label = f"編號 {block_id_str} ({col_letter}/{score_col_letter})"
 
-        has_any_score, expected_34 = sum_rating_block_scores(ws_data, score_col)
+        # 讀取本棟第 7~8 列「房物構造別」與第 9 列「樓層別」
+        struct_s1, struct_s2 = get_rating_block_specs(ws_data, 7, 8, block_col, merged_ranges)
+        structure_val = (struct_s1 + struct_s2).strip()
+        floor_raw = get_cell_value_safe(ws_data, 9, block_col, merged_ranges)
+        floor_val = str(floor_raw).replace("\r", "").replace("\n", "").strip() if floor_raw is not None else ""
+
+        has_base_7_31, base_sum_7_31 = sum_rating_block_range(ws_data, score_col, 7, 31)
+        has_any_score, expected_34 = sum_rating_block_range(ws_data, score_col, 7, 33)
+
         r34_raw = get_cell_value_safe(ws_data, 34, block_col, merged_ranges)
         has_nonzero_34 = is_pure_number(r34_raw) and abs(to_float(r34_raw)) > 0.001
 
@@ -1837,8 +2075,161 @@ def process_rating_sheet(ws_data, ws_formula):
         r37_target = r37_formula if r37_formula is not None else r37_data
         has_r37 = (r37_target is not None and str(r37_target).strip() != "")
 
-        if has_r5 or has_any_score or has_nonzero_34 or has_r37:
+        if has_r5 or has_any_score or has_nonzero_34 or has_r37 or structure_val:
             active_blocks += 1
+
+            # ---------------- 【1. 依據 rating_db.txt / 內建文字庫檢核本棟第 10~31 列】 ----------------
+            for blk in RATING_ROW_BLOCKS:
+                cat = blk["category"]
+                r_start, r_end = blk["rows"]
+                spec1, spec2 = get_rating_block_specs(ws_data, r_start, r_end, block_col, merged_ranges)
+
+                score_raw = get_cell_value_safe(ws_data, r_start, score_col, merged_ranges)
+                score_row_for_err = r_start
+                if (score_raw is None or str(score_raw).strip() == "") and r_end > r_start:
+                    alt_score = get_cell_value_safe(ws_data, r_end, score_col, merged_ranges)
+                    if alt_score is not None and str(alt_score).strip() != "":
+                        score_raw = alt_score
+                        score_row_for_err = r_end
+
+                if not spec1 and not spec2:
+                    continue
+
+                score_coord = f"{score_col_letter}{score_row_for_err}"
+                matched_entry = match_rating_db_entry(cat, structure_val, floor_val, spec1, spec2, rating_db_entries)
+
+                if matched_entry is not None:
+                    expected_pts = float(matched_entry["points"])
+                    expected_pts_str = f"{expected_pts:g}"
+                    if not is_pure_number(score_raw):
+                        db_mismatch_count += 1
+                        err_msg = f"評點資料庫檢核不符：「{cat} - {spec1}」點數為空白或非數字，標準應為 {expected_pts_str}"
+                        add_cell_error(all_calc_errors, score_row_for_err, score_col, err_msg, merged_ranges)
+                        correction_list.append({
+                            "row": score_row_for_err,
+                            "coord": score_coord,
+                            "type": f"評點庫核對：{cat} ({spec1})",
+                            "original": "(空白/非數字)",
+                            "correct": expected_pts_str
+                        })
+                        rating_db_audit.append({
+                            "block_label": block_label,
+                            "score_coord": score_coord,
+                            "category": cat,
+                            "structure": structure_val,
+                            "floor": floor_val,
+                            "spec1": spec1,
+                            "spec2": spec2,
+                            "excel_points": "(空)",
+                            "db_points": expected_pts_str,
+                            "status": "mismatch"
+                        })
+                    else:
+                        actual_pts = to_float(score_raw)
+                        if abs(actual_pts - expected_pts) > 0.05:
+                            db_mismatch_count += 1
+                            err_msg = f"評點資料庫檢核不符：「{cat} - {spec1}」目前為 {actual_pts:g}，標準應為 {expected_pts_str}"
+                            add_cell_error(all_calc_errors, score_row_for_err, score_col, err_msg, merged_ranges)
+                            correction_list.append({
+                                "row": score_row_for_err,
+                                "coord": score_coord,
+                                "type": f"評點庫核對：{cat} ({spec1})",
+                                "original": f"{actual_pts:g}",
+                                "correct": expected_pts_str
+                            })
+                            rating_db_audit.append({
+                                "block_label": block_label,
+                                "score_coord": score_coord,
+                                "category": cat,
+                                "structure": structure_val,
+                                "floor": floor_val,
+                                "spec1": spec1,
+                                "spec2": spec2,
+                                "excel_points": f"{actual_pts:g}",
+                                "db_points": expected_pts_str,
+                                "status": "mismatch"
+                            })
+                        else:
+                            db_matched_ok += 1
+                            rating_db_audit.append({
+                                "block_label": block_label,
+                                "score_coord": score_coord,
+                                "category": cat,
+                                "structure": structure_val,
+                                "floor": floor_val,
+                                "spec1": spec1,
+                                "spec2": spec2,
+                                "excel_points": f"{actual_pts:g}",
+                                "db_points": expected_pts_str,
+                                "status": "ok"
+                            })
+                else:
+                    db_unlisted_count += 1
+                    excel_pts_disp = f"{to_float(score_raw):g}" if is_pure_number(score_raw) else str(score_raw or "(空)")
+                    rating_db_audit.append({
+                        "block_label": block_label,
+                        "score_coord": score_coord,
+                        "category": cat,
+                        "structure": structure_val,
+                        "floor": floor_val,
+                        "spec1": spec1,
+                        "spec2": spec2,
+                        "excel_points": excel_pts_disp,
+                        "db_points": "未收錄",
+                        "status": "unlisted"
+                    })
+
+            # ---------------- 【2. 驗算第 32~33 列「簷(層)高增減點數」】 ----------------
+            r32_height_raw = get_cell_value_safe(ws_data, 32, block_col, merged_ranges)
+            height_m = parse_eaves_height(r32_height_raw)
+            if height_m is not None:
+                steps_signed, expected_eaves_pts = calc_eaves_height_adjustment(height_m, base_sum_7_31)
+                eaves_score_raw = get_cell_value_safe(ws_data, 32, score_col, merged_ranges)
+                eaves_err_row = 32
+                if (eaves_score_raw is None or str(eaves_score_raw).strip() == ""):
+                    alt_33 = get_cell_value_safe(ws_data, 33, score_col, merged_ranges)
+                    if alt_33 is not None and str(alt_33).strip() != "":
+                        eaves_score_raw = alt_33
+                        eaves_err_row = 33
+                eaves_coord = f"{score_col_letter}{eaves_err_row}"
+
+                if abs(expected_eaves_pts) < 0.001:
+                    if eaves_score_raw is not None and str(eaves_score_raw).strip() != "":
+                        if not is_pure_number(eaves_score_raw) or abs(to_float(eaves_score_raw)) > 0.05:
+                            err_msg = f"簷高 {height_m:g}M (未達增減門檻或未滿 0.1M)，增減點數應為 0 或空白"
+                            add_cell_error(all_calc_errors, eaves_err_row, score_col, err_msg, merged_ranges)
+                            correction_list.append({
+                                "row": eaves_err_row,
+                                "coord": eaves_coord,
+                                "type": f"簷高增減點數 ({col_letter}32={height_m:g}M)",
+                                "original": str(eaves_score_raw),
+                                "correct": "0"
+                            })
+                else:
+                    pct_label = f"{steps_signed:+d}%"
+                    formula_desc = f"簷高 {height_m:g}M ({pct_label}) × {score_col_letter}7:{score_col_letter}31 總計({base_sum_7_31:g})"
+                    if not is_pure_number(eaves_score_raw):
+                        err_msg = f"簷高增減點數空白或非數字，依 {formula_desc} 應為 {expected_eaves_pts:.1f}"
+                        add_cell_error(all_calc_errors, eaves_err_row, score_col, err_msg, merged_ranges)
+                        correction_list.append({
+                            "row": eaves_err_row,
+                            "coord": eaves_coord,
+                            "type": f"簷高增減點數 ({formula_desc})",
+                            "original": "(空白/非數字)",
+                            "correct": f"{expected_eaves_pts:.1f}"
+                        })
+                    else:
+                        actual_eaves_pts = to_float(eaves_score_raw)
+                        if abs(actual_eaves_pts - expected_eaves_pts) > 0.05:
+                            err_msg = f"簷高增減點數錯誤：目前 {actual_eaves_pts:g}，依 {formula_desc} 應為 {expected_eaves_pts:.1f}"
+                            add_cell_error(all_calc_errors, eaves_err_row, score_col, err_msg, merged_ranges)
+                            correction_list.append({
+                                "row": eaves_err_row,
+                                "coord": eaves_coord,
+                                "type": f"簷高增減點數 ({formula_desc})",
+                                "original": f"{actual_eaves_pts:g}",
+                                "correct": f"{expected_eaves_pts:.1f}"
+                            })
 
         # 單位面積評點數 (F34/H34/J34/L34) = 下一欄 7~33 列加總至小數點第一位
         if has_r5 or has_any_score or has_nonzero_34:
@@ -1980,11 +2371,16 @@ def process_rating_sheet(ws_data, ws_formula):
         'col_width_error_list': col_width_error_list,
         'col_width_inspector': col_width_inspector,
         'structure_info': structure_info,
+        'rating_db_audit': rating_db_audit,
         'print_area_str': print_area_str,
         'max_row': max_row,
         'excess_rows': False,
         'meta': {
             'active_blocks': active_blocks,
+            'db_matched_ok': db_matched_ok,
+            'db_mismatch_count': db_mismatch_count,
+            'db_unlisted_count': db_unlisted_count,
+            'db_source_label': db_source_label,
         }
     }
 
@@ -1994,6 +2390,9 @@ def process_rating_sheet(ws_data, ws_formula):
 def background_process_excel(task_id, filepath, original_filename):
     try:
         gc.enable()
+
+        # 每次校對皆即時讀取最新的 rating_db.txt (或內建文字庫)
+        rating_db_entries, db_source_label = load_rating_db_from_txt()
 
         wb_data = openpyxl.load_workbook(filepath, data_only=True)
         wb_formula = openpyxl.load_workbook(filepath, data_only=False)
@@ -2017,9 +2416,11 @@ def background_process_excel(task_id, filepath, original_filename):
         data_start_row = BUILDING_RULES["data_start_row"]
         main_visible_cols = BUILDING_RULES["visible_cols"]
 
-        # 預先建立去換行/空白版本的 BUILDING_DB 索引
+        # 相容 2 欄或 3 欄鍵值的 BUILDING_DB 索引建立
         normalized_db = {}
-        for (c_k, d_k), info in BUILDING_DB.items():
+        for key_tuple, info in BUILDING_DB.items():
+            c_k = key_tuple[0] if len(key_tuple) >= 1 else ""
+            d_k = key_tuple[1] if len(key_tuple) >= 2 else ""
             norm_key = (
                 str(c_k).replace('\n', '').replace('\r', '').strip(),
                 str(d_k).replace('\n', '').replace('\r', '').strip()
@@ -2036,7 +2437,7 @@ def background_process_excel(task_id, filepath, original_filename):
 
             # 若為「建物評點表」，執行獨立評點表檢核邏輯
             if is_rating_sheet(sheet_name):
-                sheets_data[sheet_name] = process_rating_sheet(ws_data, ws_formula)
+                sheets_data[sheet_name] = process_rating_sheet(ws_data, ws_formula, rating_db_entries, db_source_label)
                 gc.collect()
                 continue
 
@@ -2145,7 +2546,7 @@ def background_process_excel(task_id, filepath, original_filename):
             current_block_n_sum = 0.0
             subtotal_list = []
             has_subtotal_seen = False
-            rating_block_idx = 0  # 第 1 棟=0(F欄), 第 2 棟=1(H欄), 第 3 棟=2(J欄), 第 4 棟=3(L欄)
+            rating_block_idx = 0
             used_rating_sheet_label = None
 
             # 逐列檢核 (第 11 列 ~ max_row)
@@ -2248,12 +2649,12 @@ def background_process_excel(task_id, filepath, original_filename):
                         ws_r_formula = wb_formula[matched_rating_name]
                         r_merges = list(ws_r_data.merged_cells.ranges)
 
-                        target_col = 6 + (rating_block_idx * 2)  # F=6, H=8, J=10, L=12
-                        score_col = target_col + 1               # G=7, I=9, K=11, M=13
+                        target_col = 6 + (rating_block_idx * 2)
+                        score_col = target_col + 1
                         col_letter = openpyxl.utils.get_column_letter(target_col)
                         score_col_letter = openpyxl.utils.get_column_letter(score_col)
 
-                        # (A) 比對主表 B 欄編號 vs 評點表第 5 列編號 (F5/H5/J5/L5)
+                        # (A) 比對主表 B 欄編號 vs 評點表第 5 列編號
                         main_id = normalize_id_str(ws_data.cell(row=row, column=2).value)
                         r5_id = normalize_id_str(get_cell_value_safe(ws_r_data, 5, target_col, r_merges))
                         if main_id != r5_id:
@@ -2270,8 +2671,8 @@ def background_process_excel(task_id, filepath, original_filename):
                                 "correct": r5_id or "(空)"
                             })
 
-                        # (B) 比對主表 E 欄 vs 評點表 F34/H34/J34/L34 (並同步檢查 7~33 列重算總和)
-                        has_scores, calc_pts = sum_rating_block_scores(ws_r_data, score_col)
+                        # (B) 比對主表 E 欄 vs 評點表 F34/H34/J34/L34 (及 7~33 列重算總和)
+                        has_scores, calc_pts = sum_rating_block_range(ws_r_data, score_col, 7, 33)
                         r34_raw = get_cell_value_safe(ws_r_data, 34, target_col, r_merges)
                         r34_num = custom_round(to_float(r34_raw), 1) if is_pure_number(r34_raw) else None
                         expected_e = calc_pts if has_scores else r34_num
@@ -2301,7 +2702,7 @@ def background_process_excel(task_id, filepath, original_filename):
                                     "correct": f"{expected_e:.1f}"
                                 })
 
-                        # (C) 比對主表 G 欄 vs 評點表 F37/H37/J37/L37 計算式結果 (小數點第 2 位)
+                        # (C) 比對主表 G 欄 vs 評點表 F37/H37/J37/L37 計算式結果
                         r37_formula = get_cell_value_safe(ws_r_formula, 37, target_col, r_merges)
                         r37_data = get_cell_value_safe(ws_r_data, 37, target_col, r_merges)
                         r37_target = r37_formula if r37_formula is not None else r37_data
@@ -2339,12 +2740,17 @@ def background_process_excel(task_id, filepath, original_filename):
                     rating_block_idx += 1
 
                 # ---------------- 【C 欄 & D 欄 資料庫檢核 H 欄單價、K 欄單位】 ----------------
-                norm_key = (
-                    col_C_val.replace('\n', '').replace('\r', '').strip(),
-                    col_D_val.replace('\n', '').replace('\r', '').strip()
-                )
-                if norm_key in normalized_db:
-                    db_item = normalized_db[norm_key]
+                clean_c = col_C_val.replace('\n', '').replace('\r', '').strip()
+                clean_d = col_D_val.replace('\n', '').replace('\r', '').strip()
+                db_item = None
+                if (clean_c, clean_d) in normalized_db:
+                    db_item = normalized_db[(clean_c, clean_d)]
+                elif clean_d and (clean_c + clean_d, "") in normalized_db:
+                    db_item = normalized_db[(clean_c + clean_d, "")]
+                elif not clean_d and (clean_c, "") in normalized_db:
+                    db_item = normalized_db[(clean_c, "")]
+
+                if db_item is not None:
                     h_raw = ws_data.cell(row=row, column=8).value
                     k_raw = str(ws_data.cell(row=row, column=11).value or "").strip()
 
@@ -2353,8 +2759,9 @@ def background_process_excel(task_id, filepath, original_filename):
                     elif abs(to_float(h_raw) - db_item["price"]) > 0.001:
                         add_cell_error(all_calc_errors, row, 8, f"單價與資料庫不符，應為 {db_item['price']}", merged_ranges)
 
-                    if k_raw != db_item["unit"]:
-                        add_cell_error(all_calc_errors, row, 11, f"單位與資料庫不符，應為「{db_item['unit']}」", merged_ranges)
+                    expected_unit = str(db_item["unit"]).strip()
+                    if expected_unit not in ("", "0") and k_raw != expected_unit:
+                        add_cell_error(all_calc_errors, row, 11, f"單位與資料庫不符，應為「{expected_unit}」", merged_ranges)
 
                 # ---------------- 【I 欄計算式檢核與 J 欄四捨五入驗算】 ----------------
                 i_formula_raw = ws_formula.cell(row=row, column=9).value
@@ -2399,7 +2806,6 @@ def background_process_excel(task_id, filepath, original_filename):
                 # ---------------- 【N 欄金額驗算】 ----------------
                 l_raw = ws_data.cell(row=row, column=12).value
                 if has_f_num:
-                    # 需求 1：當 F 欄存在數字時，N = round(round(E * F * G, 0) * L, 0)
                     e_raw_n = ws_data.cell(row=row, column=5).value
                     g_raw_n = ws_data.cell(row=row, column=7).value
                     l_num = parse_rate_value(l_raw)
@@ -2438,7 +2844,6 @@ def background_process_excel(task_id, filepath, original_filename):
                                     merged_ranges
                                 )
                 else:
-                    # 一般地上物列：N = round(round(H * J, 0) * L, 0)
                     h_raw = ws_data.cell(row=row, column=8).value
                     j_raw = ws_data.cell(row=row, column=10).value
 
@@ -2537,6 +2942,7 @@ def background_process_excel(task_id, filepath, original_filename):
                 'col_width_error_list': col_width_error_list,
                 'col_width_inspector': col_width_inspector,
                 'structure_info': structure_info,
+                'rating_db_audit': [],
                 'print_area_str': print_area_str,
                 'max_row': max_row,
                 'excess_rows': excess_rows,
