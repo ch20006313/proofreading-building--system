@@ -582,15 +582,15 @@ BUILTIN_RATING_DB_TXT = """
 電器設備(含燈具) | | | 豪華燈具、隱埋式豪華設備 | (店舖住宅) | 75
 電器設備(含燈具) | | | 豪華燈具、隱埋式豪華設備 | (高級建築) | 100
 電器設備(含燈具) | | | 豪華設備燈具並附有自家護電 | (高級建築) | 100
-窗加設備柵(鐵窗) | | | 普通型 | 獨立戶 | 100
-窗加設備柵(鐵窗) | | | 普通型 | 連棟式邊戶 | 75
-窗加設備柵(鐵窗) | | | 普通型 | 連棟式中間戶 | 60
+窗加設備柵(鐵窗) | | | 普通型 | 獨立戶 | 20
+窗加設備柵(鐵窗) | | | 普通型 | 連棟式邊戶 | 12
+窗加設備柵(鐵窗) | | | 普通型 | 連棟式中間戶 | 10
 窗加設備柵(鐵窗) | | | 美術型 | 獨立戶 | 30
 窗加設備柵(鐵窗) | | | 美術型 | 連棟式邊戶 | 15
 窗加設備柵(鐵窗) | | | 美術型 | 連棟式中間戶 | 12
-窗加設備柵(鐵窗) | | | 豪華型 | 獨立戶 | 20
-窗加設備柵(鐵窗) | | | 豪華型 | 連棟式邊戶 | 12
-窗加設備柵(鐵窗) | | | 豪華型 | 連棟式中間戶 | 10
+窗加設備柵(鐵窗) | | | 豪華型 | 獨立戶 | 100
+窗加設備柵(鐵窗) | | | 豪華型 | 連棟式邊戶 | 75
+窗加設備柵(鐵窗) | | | 豪華型 | 連棟式中間戶 | 60
 """
 
 # ==============================================================================
@@ -1549,11 +1549,8 @@ HTML_TEMPLATE = """
         
         /* 結構探測器與評點資料庫比對明細面板 */
         .inspector-box { background: #eef6ff; border: 1px solid #b8daff; border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; }
-        .audit-box { background: #f5eef8; border: 1px solid #d7bde2; border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; }
         .inspector-toggle { background: #2980b9; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; font-family: inherit; }
         .inspector-toggle:hover { background: #1f6391; }
-        .audit-toggle { background: #8e44ad; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; font-family: inherit; }
-        .audit-toggle:hover { background: #732d91; }
         .inspector-content { display: none; margin-top: 10px; max-height: 360px; overflow-y: auto; background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 10px; font-size: 12px; }
         .inspector-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
         .inspector-table th, .inspector-table td { border: 1px solid #ddd; padding: 5px 8px; text-align: left; }
@@ -1679,10 +1676,6 @@ HTML_TEMPLATE = """
                                 <span class="badge">評點加總：第 7～33 列 (含簷高驗算)</span>
                                 <span class="badge">字體檢核：D5:M35 須為 12pt</span>
                                 <span class="badge">已填寫棟數：{{ s_data.meta.active_blocks }} 棟</span>
-                                <span class="badge">TXT 資料庫來源：{{ s_data.meta.db_source_label }}</span>
-                                <span class="badge {% if s_data.meta.db_mismatch_count > 0 %}badge-err{% else %}badge-ok{% endif %}">
-                                    📚 資料庫比對：符合 {{ s_data.meta.db_matched_ok }} / 異常 {{ s_data.meta.db_mismatch_count }} / 未收錄 {{ s_data.meta.db_unlisted_count }}
-                                </span>
                             {% else %}
                                 <span class="badge">H1：{{ s_data.meta.h1_text or '(空)' }}</span>
                                 <span class="badge">S24：{{ s_data.meta.s24_text or '(空)' }}</span>
@@ -1696,48 +1689,6 @@ HTML_TEMPLATE = """
                                 <span class="badge badge-err">📏 欄寬異常：{{ s_data.col_width_error_list|length }} 欄</span>
                             {% endif %}
                         </div>
-
-                        <!-- 評點表專屬：TXT 評點資料庫比對明細 (唯讀檢視) -->
-                        {% if s_data.sheet_type == 'rating' and s_data.rating_db_audit %}
-                        <div class="audit-box">
-                            <button type="button" class="audit-toggle" onclick="toggleAudit('{{ s_idx }}')">
-                                📚 展開/收合「{{ sheet_name }}」TXT 評點資料庫比對明細 (共 {{ s_data.rating_db_audit|length }} 筆項目)
-                            </button>
-                            <div class="inspector-content" id="audit-{{ s_idx }}">
-                                <table class="inspector-table">
-                                    <tr>
-                                        <th>棟別 / 座標</th>
-                                        <th>項目類別</th>
-                                        <th>構造 / 樓層</th>
-                                        <th>規格內容</th>
-                                        <th>Excel 點數</th>
-                                        <th>資料庫標準</th>
-                                        <th>比對狀態</th>
-                                    </tr>
-                                    {% for a in s_data.rating_db_audit %}
-                                    <tr>
-                                        <td><strong>{{ a.block_label }}</strong> ({{ a.score_coord }})</td>
-                                        <td>{{ a.category }}</td>
-                                        <td>{{ a.structure or '-' }} / {{ a.floor or '-' }}</td>
-                                        <td>{{ a.spec1 }}{% if a.spec2 %} <span style="color:#7f8c8d;">| {{ a.spec2 }}</span>{% endif %}</td>
-                                        <td>{{ a.excel_points }}</td>
-                                        <td>{{ a.db_points }}</td>
-                                        <td>
-                                            {% if a.status == 'ok' %}
-                                                <span style="color:#27ae60; font-weight:bold;">✅ 相符</span>
-                                            {% elif a.status == 'mismatch' %}
-                                                <span style="color:#c0392b; font-weight:bold;">❌ 點數不符</span>
-                                            {% else %}
-                                                <span style="color:#7f8c8d;">⚪ 未收錄於 TXT</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </table>
-                            </div>
-                        </div>
-                        {% endif %}
-
 
                         {% if s_data.excess_rows %}
                             <p style="color: #c0392b; font-weight: bold; background: #fadbd8; padding: 10px; border-radius: 5px; font-size: 11pt;">⚠️ 注意事項：本工作表未設定列印範圍且資料超過 {{ s_data.max_row }} 列，系統僅校對前 {{ s_data.max_row }} 列。</p>
@@ -1915,11 +1866,6 @@ HTML_TEMPLATE = """
             box.style.display = (box.style.display === 'block') ? 'none' : 'block';
         }
 
-        function toggleAudit(sheetId) {
-            let box = document.getElementById('audit-' + sheetId);
-            box.style.display = (box.style.display === 'block') ? 'none' : 'block';
-        }
-
         function scrollToTop() {
             const uploadBox = document.getElementById('uploadBox');
             if (uploadBox) {
@@ -2043,11 +1989,17 @@ def process_rating_sheet(ws_data, ws_formula, rating_db_entries, db_source_label
         block_id_str = normalize_id_str(r5_val) or f"第{b_idx}棟"
         block_label = f"編號 {block_id_str} ({col_letter}/{score_col_letter})"
 
-        # 讀取本棟第 7~8 列「房物構造別」與第 9 列「樓層別」
-        struct_s1, struct_s2 = get_rating_block_specs(ws_data, 7, 8, block_col, merged_ranges)
-        structure_val = (struct_s1 + struct_s2).strip()
-        floor_raw = get_cell_value_safe(ws_data, 9, block_col, merged_ranges)
+# 讀取本棟第 7 列「房物構造別」、第 8~9 列「樓層別」與第 10 列「房屋構造體(戶別)」
+        struct_raw = get_cell_value_safe(ws_data, 7, block_col, merged_ranges)
+        structure_val = str(struct_raw).replace("\r", "").replace("\n", "").strip() if struct_raw is not None else ""
+
+        floor_raw = get_cell_value_safe(ws_data, 8, block_col, merged_ranges)
+        if floor_raw is None or str(floor_raw).strip() == "":
+            floor_raw = get_cell_value_safe(ws_data, 9, block_col, merged_ranges)
         floor_val = str(floor_raw).replace("\r", "").replace("\n", "").strip() if floor_raw is not None else ""
+
+        house_type_raw = get_cell_value_safe(ws_data, 10, block_col, merged_ranges)
+        house_type_val = str(house_type_raw).replace("\r", "").replace("\n", "").strip() if house_type_raw is not None else ""
 
         has_base_7_31, base_sum_7_31 = sum_rating_block_range(ws_data, score_col, 7, 31)
         has_any_score, expected_34 = sum_rating_block_range(ws_data, score_col, 7, 33)
@@ -2068,6 +2020,10 @@ def process_rating_sheet(ws_data, ws_formula, rating_db_entries, db_source_label
                 cat = blk["category"]
                 r_start, r_end = blk["rows"]
                 spec1, spec2 = get_rating_block_specs(ws_data, r_start, r_end, block_col, merged_ranges)
+
+                # 窗加設備柵(鐵窗)一律結合第 30 列型式與第 10 列戶別 (F30+F10, H30+H10, J30+J10, L30+L10)
+                if cat == "窗加設備柵(鐵窗)" and spec1 and house_type_val:
+                    spec2 = house_type_val
 
                 score_raw = get_cell_value_safe(ws_data, r_start, score_col, merged_ranges)
                 score_row_for_err = r_start
