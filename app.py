@@ -3,6 +3,7 @@ import openpyxl
 import time
 import uuid
 import math
+from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN
 import re
 import gc
 import ast
@@ -1137,33 +1138,63 @@ def parse_eaves_height(val):
 
 def calc_eaves_height_adjustment(height_m, base_sum_7_31):
     """
-    驗算簷高增減點數：
-    - 當簷高 > 4：每增加 0.1 增加 1%，未達 0.1 不列計
-    - 當簷高 < 2.5：每減少 0.1 減少 1%，未達 0.1 不列計
+    精準驗算簷高增減點數 (全 Decimal 運算)：
+    - 當簷高大於 4：每增加 0.1 增加 1%，未達 0.1 不列計
+    - 當簷高小於 2.5：每減少 0.1 減少 1%，未達 0.1 不列計
     - 介於 2.5 ~ 4：增減點數為 0
-    回傳 (steps_signed: int, expected_pts: float)
     """
-    if height_m > 4.0:
-        steps = math.floor((height_m - 4.0) * 10.0 + 1e-9)
-        expected = custom_round(steps * 0.01 * base_sum_7_31, 1)
+    h_dec = to_decimal(height_m)
+    base_dec = to_decimal(base_sum_7_31)
+    if h_dec > Decimal('4'):
+        steps = int(((h_dec - Decimal('4')) * Decimal('10')).to_integral_value(rounding=ROUND_DOWN))
+        expected = custom_round(Decimal(steps) * Decimal('0.01') * base_dec, 1)
         return steps, expected
-    elif height_m < 2.5:
-        steps = math.floor((2.5 - height_m) * 10.0 + 1e-9)
-        expected = custom_round(-steps * 0.01 * base_sum_7_31, 1)
+    elif h_dec < Decimal('2.5'):
+        steps = int(((Decimal('2.5') - h_dec) * Decimal('10')).to_integral_value(rounding=ROUND_DOWN))
+        expected = custom_round(Decimal(-steps) * Decimal('0.01') * base_dec, 1)
         return -steps, expected
     else:
         return 0, 0.0
 
+def to_decimal(val):
+    """將數值或千分位字串精準轉為 Decimal，比照 Excel 15 位有效數字消除浮點尾數誤差"""
+    if isinstance(val, Decimal):
+        return val
+    if isinstance(val, bool) or val is None:
+        raise ValueError("非數值")
+    if isinstance(val, int):
+        return Decimal(val)
+    if isinstance(val, float):
+        return Decimal(f"{val:.15g}")
+    s = str(val).replace(',', '').strip()
+    return Decimal(s)
+
+def parse_rate_decimal(val):
+    """精準解析 L 欄發放比例為 Decimal (支援 0.5、0.7、1、'50%'、'70%'、'100%')"""
+    if val is None or isinstance(val, (bool, datetime.date, datetime.datetime)):
+        return None
+    if isinstance(val, (int, float, Decimal)):
+        return to_decimal(val)
+    s = str(val).strip()
+    if s == "":
+        return None
+    if s.endswith('%'):
+        try:
+            return to_decimal(s[:-1].strip()) / Decimal('100')
+        except Exception:
+            return None
+    try:
+        return to_decimal(s)
+    except Exception:
+        return None
+
 def custom_round(value, ndigits=0):
-    """標準四捨五入 (避免 Python 銀行家捨入誤差)"""
-    multiplier = 10 ** ndigits
-    if value >= 0:
-        rounded_val = math.floor(value * multiplier + 0.5 + 1e-12) / multiplier
-    else:
-        rounded_val = math.ceil(value * multiplier - 0.5 - 1e-12) / multiplier
-    if ndigits == 0:
-        return int(rounded_val)
-    return rounded_val
+    """精準十進位標準四捨五入 (Decimal + ROUND_HALF_UP，與 Excel ROUND 規則完全一致)"""
+    d = value if isinstance(value, Decimal) else to_decimal(value)
+    if ndigits <= 0:
+        return int(d.quantize(Decimal('1'), rounding=ROUND_HALF_UP))
+    q = Decimal('1').scaleb(-ndigits)
+    return float(d.quantize(q, rounding=ROUND_HALF_UP))
 
 def should_skip_sheet(sheet_name):
     """判斷是否跳過該工作表"""
@@ -1360,11 +1391,11 @@ def _safe_eval_node(node):
     if isinstance(node, ast.Expression):
         return _safe_eval_node(node.body)
     elif isinstance(node, ast.Constant) and isinstance(node.value, (int, float)) and not isinstance(node.value, bool):
-        return float(node.value)
+        return to_decimal(node.value)
     elif isinstance(node, ast.BinOp) and type(node.op) in _ALLOWED_BINOPS:
         left = _safe_eval_node(node.left)
         right = _safe_eval_node(node.right)
-        if isinstance(node.op, ast.Div) and abs(right) < 1e-12:
+        if isinstance(node.op, ast.Div) and abs(right) < Decimal('1e-12'):
             raise ZeroDivisionError("除數不可為 0")
         return _ALLOWED_BINOPS[type(node.op)](left, right)
     elif isinstance(node, ast.UnaryOp) and type(node.op) in _ALLOWED_UNARYOPS:
@@ -1376,8 +1407,8 @@ def validate_and_eval_formula(raw_val):
     """檢核計算式是否合理並計算結果 (適用於主表 I 欄與評點表 F37/H37/J37/L37)"""
     if raw_val is None:
         return True, None, ""
-    if isinstance(raw_val, (int, float)) and not isinstance(raw_val, bool):
-        return True, float(raw_val), ""
+    if isinstance(raw_val, (int, float, Decimal)) and not isinstance(raw_val, bool):
+        return True, to_decimal(raw_val), ""
 
     expr = str(raw_val).strip()
     if expr == "":
@@ -2922,12 +2953,12 @@ def background_process_excel(task_id, filepath, original_filename):
                     elif abs(l_rate_parsed - expected_l) > 0.001:
                         add_cell_error(all_calc_errors, row, 12, f"發放比例錯誤 ({l_reason})", merged_ranges)
 
-                # ---------------- 【N 欄金額驗算】 ----------------
+                # ---------------- 【N 欄金額驗算 (全 Decimal 精準兩階段四捨五入)】 ----------------
                 l_raw = ws_data.cell(row=row, column=12).value
                 if has_f_num:
                     e_raw_n = ws_data.cell(row=row, column=5).value
                     g_raw_n = ws_data.cell(row=row, column=7).value
-                    l_num = parse_rate_value(l_raw)
+                    l_dec = parse_rate_decimal(l_raw)
 
                     if not is_pure_number(e_raw_n) or not is_pure_number(g_raw_n):
                         add_cell_error(
@@ -2935,18 +2966,18 @@ def background_process_excel(task_id, filepath, original_filename):
                             "無法驗算房屋現值：E 欄(點/㎡)或 G 欄(評點房屋面積)空白或非數字",
                             merged_ranges
                         )
-                    elif l_num is None:
+                    elif l_dec is None:
                         add_cell_error(
                             all_calc_errors, row, 14,
                             "無法驗算房屋現值：L 欄發放比例空白或非數字",
                             merged_ranges
                         )
                     else:
-                        e_num_n = to_float(e_raw_n)
-                        f_num_n = to_float(f_raw)
-                        g_num_n = to_float(g_raw_n)
-                        step1 = custom_round(e_num_n * f_num_n * g_num_n, ndigits=0)
-                        expected_n = custom_round(step1 * l_num, ndigits=0)
+                        e_dec = to_decimal(e_raw_n)
+                        f_dec = to_decimal(f_raw)
+                        g_dec = to_decimal(g_raw_n)
+                        step1 = custom_round(e_dec * f_dec * g_dec, ndigits=0)
+                        expected_n = custom_round(Decimal(step1) * l_dec, ndigits=0)
 
                         if not is_pure_number(n_cell_val):
                             add_cell_error(
@@ -2955,8 +2986,8 @@ def background_process_excel(task_id, filepath, original_filename):
                                 merged_ranges
                             )
                         else:
-                            actual_n = to_float(n_cell_val)
-                            if abs(actual_n - expected_n) > 0.1:
+                            actual_n = to_decimal(n_cell_val)
+                            if abs(actual_n - Decimal(expected_n)) > Decimal('0.1'):
                                 add_cell_error(
                                     all_calc_errors, row, 14,
                                     f"金額驗算錯誤，應為 {expected_n:,} (E×F×G四捨五入={step1:,}，再×L四捨五入)",
@@ -2967,19 +2998,19 @@ def background_process_excel(task_id, filepath, original_filename):
                     j_raw = ws_data.cell(row=row, column=10).value
 
                     if is_pure_number(h_raw) and is_pure_number(j_raw):
-                        h_num = to_float(h_raw)
-                        j_num = to_float(j_raw)
-                        l_num = parse_rate_value(l_raw)
-                        if l_num is None:
+                        h_dec = to_decimal(h_raw)
+                        j_dec = to_decimal(j_raw)
+                        l_dec = parse_rate_decimal(l_raw)
+                        if l_dec is None:
                             add_cell_error(all_calc_errors, row, 14, "無法驗算金額：L 欄發放比例空白或非數字", merged_ranges)
                         else:
-                            step1 = custom_round(h_num * j_num, ndigits=0)
-                            expected_n = custom_round(step1 * l_num, ndigits=0)
+                            step1 = custom_round(h_dec * j_dec, ndigits=0)
+                            expected_n = custom_round(Decimal(step1) * l_dec, ndigits=0)
                             if not is_pure_number(n_cell_val):
                                 add_cell_error(all_calc_errors, row, 14, f"金額空白或非數字，應為 {expected_n:,}", merged_ranges)
                             else:
-                                actual_n = to_float(n_cell_val)
-                                if abs(actual_n - expected_n) > 0.1:
+                                actual_n = to_decimal(n_cell_val)
+                                if abs(actual_n - Decimal(expected_n)) > Decimal('0.1'):
                                     add_cell_error(
                                         all_calc_errors, row, 14,
                                         f"金額驗算錯誤，應為 {expected_n:,} (H×J四捨五入={step1:,}，再×L四捨五入)",
