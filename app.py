@@ -1730,7 +1730,7 @@ HTML_TEMPLATE = """
                             {% if s_data.sheet_type == 'rating' %}
                                 <span class="badge">檢核範圍：D～M 欄 (第 1～{{ s_data.max_row }} 列)</span>
                                 <span class="badge">評點加總：第 7～33 列 (含簷高驗算)</span>
-                                <span class="badge">字體檢核：D5:M35 須為 12pt</span>
+                                <span class="badge">字體檢核：須為 12pt</span>
                                 <span class="badge">已填寫棟數：{{ s_data.meta.active_blocks }} 棟</span>
                             {% else %}
                                 <span class="badge">H1：{{ s_data.meta.h1_text or '(空)' }}</span>
@@ -2029,6 +2029,7 @@ def process_rating_sheet(ws_data, ws_formula, rating_db_entries, db_source_label
     merged_ranges = list(ws_data.merged_cells.ranges)
 
     all_calc_errors = {r: {c: [] for c in range(1, 21)} for r in range(1, max_row + 1)}
+    unlisted_cells = set()
     active_blocks = 0
     db_matched_ok = 0
     db_mismatch_count = 0
@@ -2162,6 +2163,13 @@ def process_rating_sheet(ws_data, ws_formula, rating_db_entries, db_source_label
                             })
                 else:
                     db_unlisted_count += 1
+                    # 需求 1：記錄非資料庫存在的品項與對應數字儲存格
+                    unlisted_cells.add((r_start, block_col))
+                    if r_end > r_start and spec2:
+                        unlisted_cells.add((r_end, block_col))
+                    if score_raw is not None and str(score_raw).strip() != "":
+                        unlisted_cells.add((score_row_for_err, score_col))
+
                     excel_pts_disp = f"{to_float(score_raw):g}" if is_pure_number(score_raw) else str(score_raw or "(空)")
                     rating_db_audit.append({
                         "block_label": block_label,
@@ -2359,9 +2367,10 @@ def process_rating_sheet(ws_data, ws_formula, rating_db_entries, db_source_label
 
             font_size = cell_formula.font.size if cell_formula.font else None
 
+            # 需求 2：字體應為 12pt，不加儲存格範圍前綴
             if 5 <= row <= 35 and 4 <= col <= 13:
                 if font_size is None or abs(float(font_size) - 12.0) > 0.01:
-                    errors.append(f"D5:M35 字體應為 12pt (目前 {font_size}pt)")
+                    errors.append(f"字體應為 12pt (目前 {font_size}pt)")
 
             val_display = format_cell_display(raw_display_src, col, row, sheet_type="rating")
             formula_str = str(cell_formula.value if cell_formula.value is not None else "").strip()
@@ -2375,20 +2384,28 @@ def process_rating_sheet(ws_data, ws_formula, rating_db_entries, db_source_label
                     "merge_info": merge_range_str,
                 })
 
-            # 需求 1：評點表第 1~34 列出現小數點之提醒邏輯
+            # 需求 1：評點表第 1~34 列小數點 & 非資料庫品項/數字提醒邏輯
             dec_check_val = cell_data.value if cell_data.value is not None else (
                 cell_formula.value if not str(cell_formula.value or "").strip().startswith("=") else None
             )
             has_dec = (1 <= row <= 34) and has_decimal_point(dec_check_val)
+            is_unlisted = (row, col) in unlisted_cells
 
             if errors:
                 if has_dec:
                     errors.append("含有小數點")
+                if is_unlisted:
+                    errors.append("非查估標準")
                 err_msg = "、".join(errors)
                 map_data[(row, col)] = {'status': 'error', 'text': val_display, 'error': err_msg}
                 error_list.append(f"❌ {coord}: {err_msg}")
-            elif has_dec:
-                map_data[(row, col)] = {'status': 'warning', 'text': val_display, 'error': '提醒：含有小數點'}
+            elif has_dec or is_unlisted:
+                warn_reasons = []
+                if has_dec:
+                    warn_reasons.append("含有小數點")
+                if is_unlisted:
+                    warn_reasons.append("非查估標準")
+                map_data[(row, col)] = {'status': 'warning', 'text': val_display, 'error': '提醒：' + '、'.join(warn_reasons)}
             else:
                 map_data[(row, col)] = {'status': 'valid', 'text': val_display}
 
@@ -2703,6 +2720,7 @@ def background_process_excel(task_id, filepath, original_filename):
 
             all_calc_errors = {r: {c: [] for c in range(1, 21)} for r in range(1, max_row + 1)}
             all_special_flags = {r: {c: False for c in range(1, 21)} for r in range(1, max_row + 1)}
+            unlisted_main_cells = set()
 
             c3_owner_name = str(get_cell_value_safe(ws_data, 3, 3, merged_ranges) or "").strip()
             matched_rating_name = find_matching_rating_sheet(sheet_name, c3_owner_name, rating_sheet_names)
@@ -3026,6 +3044,14 @@ def background_process_excel(task_id, filepath, original_filename):
                     expected_unit = str(db_item["unit"]).strip()
                     if expected_unit not in ("", "0") and k_raw != expected_unit:
                         add_cell_error(all_calc_errors, row, 11, f"單位與資料庫不符，應為「{expected_unit}」", merged_ranges)
+                elif not has_f_num and clean_c:
+                    # 需求 1：調查表其他地上物非資料庫存在之品項及對應單價數字
+                    unlisted_main_cells.add((row, 3))
+                    if clean_d:
+                        unlisted_main_cells.add((row, 4))
+                    h_check_val = ws_data.cell(row=row, column=8).value
+                    if h_check_val is not None and str(h_check_val).strip() != "":
+                        unlisted_main_cells.add((row, 8))
 
                 # ---------------- 【I 欄計算式檢核與 J 欄四捨五入驗算】 ----------------
                 i_formula_raw = ws_formula.cell(row=row, column=9).value
@@ -3189,18 +3215,27 @@ def background_process_excel(task_id, filepath, original_filename):
                         })
 
                     # 需求 3：調查表出現立方公尺 (㎥) 之提醒邏輯
+                    # 需求 1 & 3：調查表出現立方公尺 (㎥) 或非資料庫品項/單價之提醒邏輯
                     raw_m3_val = cell_data.value if cell_data.value is not None else cell_formula.value
                     is_m3 = has_cubic_meter(raw_m3_val)
+                    is_unlisted_main = (row, col) in unlisted_main_cells
 
                     if errors:
                         if is_m3:
                             errors.append("㎥")
+                        if is_unlisted_main:
+                            errors.append("非查估標準")
                         err_msg = "、".join(errors)
                         status = 'special' if is_special else 'error'
                         map_data[(row, col)] = {'status': status, 'text': val_display, 'error': err_msg}
                         error_list.append(f"{'🟪' if is_special else '❌'} {coord}: {err_msg}")
-                    elif is_m3:
-                        map_data[(row, col)] = {'status': 'warning', 'text': val_display, 'error': '提醒：㎥ (立方公尺)'}
+                    elif is_m3 or is_unlisted_main:
+                        warn_reasons = []
+                        if is_m3:
+                            warn_reasons.append("㎥ (立方公尺)")
+                        if is_unlisted_main:
+                            warn_reasons.append("非查估標準")
+                        map_data[(row, col)] = {'status': 'warning', 'text': val_display, 'error': '提醒：' + '、'.join(warn_reasons)}
                     else:
                         map_data[(row, col)] = {'status': 'valid', 'text': val_display}
 
