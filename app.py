@@ -149,38 +149,38 @@ BUILTIN_RATING_DB_TXT = """
 房屋構造體 | 鐵筋混凝土加強磚造(R.C平頂) | 四層以上 | 獨立戶 | | 660
 房屋構造體 | 鐵筋混凝土加強磚造(R.C平頂) | 四層以上 | 連棟式邊戶 | | 610
 房屋構造體 | 鐵筋混凝土加強磚造(R.C平頂) | 四層以上 | 連棟式中間戶 | | 555
-房屋構造體 | 磚造(二級木屋架) | 平房 | 連棟式邊戶 | | 390
-房屋構造體 | 磚造(二級木屋架) | 平房 | 連棟式中間戶 | | 340
-房屋構造體 | 磚造(二級木屋架) | 平房 | 獨立戶 | | 290
-房屋構造體 | 磚造(二級木屋架) | 二-三層 | 連棟式邊戶 | | 420
-房屋構造體 | 磚造(二級木屋架) | 二-三層 | 連棟式中間戶 | | 370
-房屋構造體 | 磚造(二級木屋架) | 二-三層 | 獨立戶 | | 330
-房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 一級木平房 | 連棟式邊戶 | | 490
-房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 一級木平房 | 連棟式中間戶 | | 440
-房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 一級木平房 | 獨立戶 | | 410
-房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 一級木二-三層 | 連棟式邊戶 | | 470
-房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 一級木二-三層 | 連棟式中間戶 | | 420
-房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 一級木二-三層 | 獨立戶 | | 390
-房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 二級木平房 | 連棟式邊戶 | | 380
-房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 二級木平房 | 連棟式中間戶 | | 330
-房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 二級木平房 | 獨立戶 | | 300
-房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 二級木二-三層 | 連棟式邊戶 | | 360
-房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 二級木二-三層 | 連棟式中間戶 | | 310
-房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 二級木二-三層 | 獨立戶 | | 280
-房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 杉木平房 | 連棟式邊戶 | | 350
-房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 杉木平房 | 連棟式中間戶 | | 300
-房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 杉木平房 | 獨立戶 | | 270
-房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 杉木二-三層 | 連棟式邊戶 | | 330
-房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 杉木二-三層 | 連棟式中間戶 | | 280
-房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 杉木二-三層 | 獨立戶 | | 250
-房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 什木 | 連棟式邊戶 | | 230
-房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 什木 | 連棟式中間戶 | | 200
-房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 什木 | 獨立戶 | | 180
-房屋構造體 | 石造(二級木屋架) | 平房 | 連棟式邊戶 | | 270
-房屋構造體 | 石造(二級木屋架) | 二層 | 連棟式中間戶 | | 325
+房屋構造體 | 磚造(二級木屋架) | 平房 | 獨立戶 | | 390
+房屋構造體 | 磚造(二級木屋架) | 平房 | 連棟式邊戶 | | 340
+房屋構造體 | 磚造(二級木屋架) | 平房 | 連棟式中間戶 | | 290
+房屋構造體 | 磚造(二級木屋架) | 二-三層 | 獨立戶 | | 420
+房屋構造體 | 磚造(二級木屋架) | 二-三層 | 連棟式邊戶 | | 370
+房屋構造體 | 磚造(二級木屋架) | 二-三層 | 連棟式中間戶 | | 330
+房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 一級木平房 | 獨立戶 | | 490
+房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 一級木平房 | 連棟式邊戶 | | 440
+房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 一級木平房 | 連棟式中間戶 | | 410
+房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 一級木二-三層 | 獨立戶 | | 470
+房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 一級木二-三層 | 連棟式邊戶 | | 420
+房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 一級木二-三層 | 連棟式中間戶 | | 390
+房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 二級木平房 | 獨立戶 | | 380
+房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 二級木平房 | 連棟式邊戶 | | 330
+房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 二級木平房 | 連棟式中間戶 | | 300
+房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 二級木二-三層 | 獨立戶 | | 360
+房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 二級木二-三層 | 連棟式邊戶 | | 310
+房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 二級木二-三層 | 連棟式中間戶 | | 280
+房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 杉木平房 | 獨立戶 | | 350
+房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 杉木平房 | 連棟式邊戶 | | 300
+房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 杉木平房 | 連棟式中間戶 | | 270
+房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 杉木二-三層 | 獨立戶 | | 330
+房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 杉木二-三層 | 連棟式邊戶 | | 280
+房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 杉木二-三層 | 連棟式中間戶 | | 250
+房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 什木 | 獨立戶 | | 230
+房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 什木 | 連棟式邊戶 | | 200
+房屋構造體 | 木骨造(二級木屋架或三級木屋架) | 什木 | 連棟式中間戶 | | 180
+房屋構造體 | 石造(二級木屋架) | 平房 | 獨立戶 | | 270
+房屋構造體 | 石造(二級木屋架) | 二層 | 獨立戶 | | 325
 房屋構造體 | 混凝土加強卵石造(二級木造架) | 平房 | 獨立戶 | | 330
-房屋構造體 | 混凝土加強卵石造(二級木造架) | 二層 | 連棟式邊戶 | | 380
-房屋構造體 | 土磚造(二級木屋架) | 平房 | 連棟式中間戶 | | 160
+房屋構造體 | 混凝土加強卵石造(二級木造架) | 二層 | 獨立戶 | | 380
+房屋構造體 | 土磚造(二級木屋架) | 平房 | 獨立戶 | | 160
 房屋構造體 | 竹造(竹屋架) | 平房 | 獨立戶 | | 160
 房屋構造體 | 竹造(竹屋架) | 平房 | 連棟式邊戶 | | 150
 房屋構造體 | 竹造(竹屋架) | 平房 | 連棟式中間戶 | | 140
@@ -191,22 +191,20 @@ BUILTIN_RATING_DB_TXT = """
 房屋構造體 | 簡陋磚造(二級木屋架) | 1/2B平房 | 連棟式邊戶 | | 130
 房屋構造體 | 簡陋磚造(二級木屋架) | 1/2B平房 | 連棟式中間戶 | | 120
 房屋構造體 | 簡陋石造(二級木屋架) | 平房 | 獨立戶 | | 120
-房屋構造體 | 簡陋木造(三級木屋架) | 平房 | 連棟式邊戶 | | 140
-房屋構造體 | 簡陋木造(三級木屋架) | 平房 | 連棟式中間戶 | | 120
-房屋構造體 | 簡陋木造(三級木屋架) | 平房 | 獨立戶 | | 100
-房屋構造體 | 竹木混合造(竹屋架) | 平房 | 連棟式邊戶 | | 105
-房屋構造體 | 磚竹混合造(竹屋架) | 平房 | 連棟式中間戶 | | 120
+房屋構造體 | 簡陋木造(三級木屋架) | 平房 | 獨立戶 | | 140
+房屋構造體 | 簡陋木造(三級木屋架) | 平房 | 連棟式邊戶 | | 120
+房屋構造體 | 簡陋木造(三級木屋架) | 平房 | 連棟式中間戶 | | 100
+房屋構造體 | 竹木混合造(竹屋架) | 平房 | 獨立戶 | | 105
+房屋構造體 | 磚竹混合造(竹屋架) | 平房 | 獨立戶 | | 120
 房屋構造體 | 磚木混合造(二級木屋架) | 平房 | 獨立戶 | | 210
-房屋構造體 | 簡陋空心磚造(R.C平頂) | 平房 | 連棟式邊戶 | | 480
-房屋構造體 | 簡陋空心磚造(R.C平頂) | 平房 | 連棟式中間戶 | | 430
-房屋構造體 | 簡陋空心磚造(R.C平頂) | 平房 | 獨立戶 | | 380
-房屋構造體 | 簡陋空心磚造(R.C平頂) | 二-三層 | 連棟式邊戶 | | 530
-房屋構造體 | 簡陋空心磚造(R.C平頂) | 二-三層 | 連棟式中間戶 | | 480
-房屋構造體 | 簡陋空心磚造(R.C平頂) | 二-三層 | 獨立戶 | | 430
-房屋構造體 | 硓砧石造(二級木屋架) | 平房 | 連棟式邊戶 | | 130
-房屋構造體 | 簡陋加強磚造(二級木屋架) | 平房 | 連棟式中間戶 | | 130
-加減牆 | 磚造(二級木屋架) | | 1面無牆(-85/4*1) | | -21.3
-加減牆 | 輕量鐵骨架(鐵屋架) | | 兩面無牆(-25/4*2) | | -12.5
+房屋構造體 | 簡陋空心磚造(R.C平頂) | 平房 | 獨立戶 | | 480
+房屋構造體 | 簡陋空心磚造(R.C平頂) | 平房 | 連棟式邊戶 | | 430
+房屋構造體 | 簡陋空心磚造(R.C平頂) | 平房 | 連棟式中間戶 | | 380
+房屋構造體 | 簡陋空心磚造(R.C平頂) | 二-三層 | 獨立戶 | | 530
+房屋構造體 | 簡陋空心磚造(R.C平頂) | 二-三層 | 連棟式邊戶 | | 480
+房屋構造體 | 簡陋空心磚造(R.C平頂) | 二-三層 | 連棟式中間戶 | | 430
+房屋構造體 | 硓砧石造(二級木屋架) | 平房 | 獨立戶 | | 130
+房屋構造體 | 簡陋加強磚造(二級木屋架) | 平房 | 獨立戶 | | 130
 室內隔牆構造體 | | | RC牆 | | 147
 室內隔牆構造體 | | | 1/2B紅磚 | | 59
 室內隔牆構造體 | | | 檜木造 | | 50
@@ -767,7 +765,6 @@ BUILDING_DB = {
     ("人口遷移費(四人)", "", ""): {"unit": "戶", "price": 59000},
     ("人口遷移費(五人)", "", ""): {"unit": "戶", "price": 62000},
     ("人口遷移費(六人以上)", "", ""): {"unit": "戶", "price": 65000},
-    ("人口暫行遷移費", "", ""): {"unit": "0", "price": 0},
     ("人口暫行遷移費(單身)", "", ""): {"unit": "戶", "price": 40000},
     ("人口暫行遷移費(二人)", "", ""): {"unit": "戶", "price": 42400},
     ("人口暫行遷移費(三人)", "", ""): {"unit": "戶", "price": 44800},
@@ -1348,6 +1345,33 @@ def is_pure_number(val):
         return True
     except Exception:
         return False
+def has_decimal_point(val):
+    """需求 1：判斷儲存格是否含有有效小數點 (排除整數如 340.0 及英文字縮寫如 R.C)"""
+    if val is None or isinstance(val, (bool, int, datetime.date, datetime.datetime)):
+        return False
+    if isinstance(val, (float, Decimal)):
+        try:
+            d = to_decimal(val)
+            return (d % Decimal('1')) != 0
+        except Exception:
+            return False
+    s = str(val).strip()
+    if not s:
+        return False
+    if is_pure_number(s):
+        try:
+            return (to_decimal(s) % Decimal('1')) != 0
+        except Exception:
+            return False
+    # 文字中含數字小數點 (如 2.7M、862.7)，但不誤判 R.C 或項目編號 1.
+    return bool(re.search(r'\d+\.\d+', s))
+
+def has_cubic_meter(val):
+    """需求 3：判斷儲存格是否出現立方公尺 (㎥ / m³ / 立方公尺)"""
+    if val is None or isinstance(val, (bool, int, float, Decimal, datetime.date, datetime.datetime)):
+        return False
+    s = str(val)
+    return ("㎥" in s) or ("m³" in s.lower()) or ("立方公尺" in s)
 
 def to_float(val):
     """將數值或千分位字串安全轉為 float"""
@@ -1619,11 +1643,12 @@ HTML_TEMPLATE = """
         .cell-valid { background-color: #eafaf1; color: #27ae60; }
         .cell-empty { background-color: #f9f9f9; color: #ccc; }
         .cell-error { background-color: #fadbd8; color: #c0392b; border: 2px solid #e74c3c !important; font-weight: bold; cursor: help; }
+        .cell-warning { background-color: #fff3e0 !important; color: #e65100 !important; border: 2px solid #ffb74d !important; font-weight: bold; cursor: help; }
         .tooltip { position: absolute; background-color: rgba(0,0,0,0.9); color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 12px; font-weight: normal; bottom: 118%; left: 50%; transform: translateX(-50%); white-space: nowrap; opacity: 0; visibility: hidden; z-index: 9999; pointer-events: none; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
         .excel-map tr:nth-child(-n+6) .tooltip { bottom: auto; top: 118%; }
         .excel-map td:nth-child(-n+3) .tooltip { left: 0; transform: none; }
         .excel-map td:nth-last-child(-n+3) .tooltip { left: auto; right: 0; transform: none; }
-        .cell-error:hover .tooltip, .special-warning:hover .tooltip { opacity: 1; visibility: visible; }
+        .cell-error:hover .tooltip, .special-warning:hover .tooltip, .cell-warning:hover .tooltip { opacity: 1; visibility: visible; }
         
         .sheet-container { border: 2px solid #e0e0e0; border-radius: 8px; padding: 18px; margin-bottom: 30px; background: #fafbfc; }
         .sheet-container.sheet-rating { border-color: #a9cce3; background: #f7fbfe; }
@@ -1771,7 +1796,7 @@ HTML_TEMPLATE = """
                                         {% set cell = s_data.map_data.get((r, c), {'status': 'empty', 'text': '', 'error': ''}) %}
                                         <td class="{% if cell.status == 'special' %}special-warning{% else %}cell-{{ cell.status }}{% endif %}">
                                             {{ cell.text }}
-                                            {% if cell.status == 'error' or cell.status == 'special' %}
+                                            {% if cell.status == 'error' or cell.status == 'special' or cell.status == 'warning' %}
                                                 <div class="tooltip">{{ cell.error }}</div>
                                             {% endif %}
                                         </td>
@@ -1982,7 +2007,7 @@ HTML_TEMPLATE = """
 # ==============================================================================
 # 🏢 處理「建物評點表」獨立檢核 (含 TXT 資料庫比對 + 簷高增減公式驗算 + 第 7~33 列加總)
 # ==============================================================================
-def process_rating_sheet(ws_data, ws_formula, rating_db_entries, db_source_label):
+def process_rating_sheet(ws_data, ws_formula, rating_db_entries, db_source_label, main_usage_by_id=None):
     visible_cols = BUILDING_RULES["rating_visible_cols"]  # D~M (4~13)
     error_list = []
     map_data = {}
@@ -2203,6 +2228,30 @@ def process_rating_sheet(ws_data, ws_formula, rating_db_entries, db_source_label
                                 "correct": f"{expected_eaves_pts:.1f}"
                             })
 
+        # 需求 2：評點表第 29 列內容應包含調查表相對應編號之 D 欄用途
+        r5_id_key = normalize_id_str(r5_val)
+        if main_usage_by_id and r5_id_key and r5_id_key in main_usage_by_id:
+            ref_info = main_usage_by_id[r5_id_key]
+            expected_d = ref_info["d_val"]
+            main_s_name = ref_info["main_sheet"]
+            main_r = ref_info["row"]
+
+            r29_raw = get_cell_value_safe(ws_data, 29, block_col, merged_ranges)
+            r29_str = str(r29_raw or "").replace("\r", "").replace("\n", "").strip()
+            d_norm = expected_d.replace(" ", "").replace("鋪", "舖")
+            r29_norm = r29_str.replace(" ", "").replace("鋪", "舖")
+
+            if d_norm and (d_norm not in r29_norm):
+                err_msg = f"第29列未包含調查表「{main_s_name}」D{main_r} 用途「{expected_d}」(目前為：{r29_str or '空白'})"
+                add_cell_error(all_calc_errors, 29, block_col, err_msg, merged_ranges)
+                correction_list.append({
+                    "row": 29,
+                    "coord": f"{col_letter}29",
+                    "type": f"跨表核對用途 ({main_s_name} D{main_r})",
+                    "original": r29_str or "(空白)",
+                    "correct": f"應包含「{expected_d}」"
+                })
+
         # 單位面積評點數 (F34/H34/J34/L34) = 下一欄 7~33 列加總至小數點第一位
         if has_r5 or has_any_score or has_nonzero_34:
             if not is_pure_number(r34_raw):
@@ -2326,10 +2375,20 @@ def process_rating_sheet(ws_data, ws_formula, rating_db_entries, db_source_label
                     "merge_info": merge_range_str,
                 })
 
+            # 需求 1：評點表第 1~34 列出現小數點之提醒邏輯
+            dec_check_val = cell_data.value if cell_data.value is not None else (
+                cell_formula.value if not str(cell_formula.value or "").strip().startswith("=") else None
+            )
+            has_dec = (1 <= row <= 34) and has_decimal_point(dec_check_val)
+
             if errors:
+                if has_dec:
+                    errors.append("含有小數點")
                 err_msg = "、".join(errors)
                 map_data[(row, col)] = {'status': 'error', 'text': val_display, 'error': err_msg}
                 error_list.append(f"❌ {coord}: {err_msg}")
+            elif has_dec:
+                map_data[(row, col)] = {'status': 'warning', 'text': val_display, 'error': '提醒：含有小數點'}
             else:
                 map_data[(row, col)] = {'status': 'valid', 'text': val_display}
 
@@ -2577,6 +2636,29 @@ def background_process_excel(task_id, filepath, original_filename):
             )
             normalized_db[norm_key] = info
 
+        # 需求 2：預先掃描調查表中有評點單價 (F欄為數字) 之列，建立 {評點表名稱: {編號: D欄用途}} 對照
+        rating_usage_map = {}
+        for s_name in active_sheet_names:
+            if is_rating_sheet(s_name):
+                continue
+            ws_m = wb_data[s_name]
+            m_merges = list(ws_m.merged_cells.ranges)
+            c3_name = str(get_cell_value_safe(ws_m, 3, 3, m_merges) or "").strip()
+            m_rating = find_matching_rating_sheet(s_name, c3_name, rating_sheet_names)
+            if not m_rating:
+                continue
+            p_max = extract_max_row_from_print_area(ws_m.print_area)
+            m_max_r = p_max if p_max else min(ws_m.max_row, default_max_row)
+            for r_m in range(data_start_row, m_max_r + 1):
+                if is_pure_number(ws_m.cell(row=r_m, column=6).value):
+                    b_id = normalize_id_str(ws_m.cell(row=r_m, column=2).value)
+                    d_str = str(ws_m.cell(row=r_m, column=4).value or "").replace('\n', '').replace('\r', '').strip()
+                    if b_id and d_str:
+                        rating_usage_map.setdefault(m_rating, {})[b_id] = {
+                            "main_sheet": s_name,
+                            "row": r_m,
+                            "d_val": d_str,
+                        }
         for idx, sheet_name in enumerate(active_sheet_names):
             progress = int((idx / total_sheets) * 100)
             tasks_db[task_id]['progress'] = progress
@@ -2587,7 +2669,10 @@ def background_process_excel(task_id, filepath, original_filename):
 
             # 若為「建物評點表」，執行獨立評點表檢核邏輯
             if is_rating_sheet(sheet_name):
-                sheets_data[sheet_name] = process_rating_sheet(ws_data, ws_formula, rating_db_entries, db_source_label)
+                sheets_data[sheet_name] = process_rating_sheet(
+                    ws_data, ws_formula, rating_db_entries, db_source_label,
+                    main_usage_by_id=rating_usage_map.get(sheet_name)
+                )
                 gc.collect()
                 continue
 
@@ -2887,6 +2972,35 @@ def background_process_excel(task_id, filepath, original_filename):
                                         "original": str(g_raw) if g_raw is not None else "(空)",
                                         "correct": f"{expected_g:.2f}"
                                     })
+                        # (D) 需求 2：核對評點表相對應編號之第 29 列內容應包含本表 D 欄用途
+                        clean_d_usage = col_D_val.replace('\n', '').replace('\r', '').strip()
+                        if clean_d_usage:
+                            matched_r29_col = target_col
+                            if main_id:
+                                for cand_col in [6, 8, 10, 12]:
+                                    cand_id = normalize_id_str(get_cell_value_safe(ws_r_data, 5, cand_col, r_merges))
+                                    if cand_id == main_id:
+                                        matched_r29_col = cand_col
+                                        break
+                            r29_col_letter = openpyxl.utils.get_column_letter(matched_r29_col)
+                            r29_raw = get_cell_value_safe(ws_r_data, 29, matched_r29_col, r_merges)
+                            r29_str = str(r29_raw or "").replace('\n', '').replace('\r', '').strip()
+
+                            d_norm = clean_d_usage.replace(" ", "").replace("鋪", "舖")
+                            r29_norm = r29_str.replace(" ", "").replace("鋪", "舖")
+                            if d_norm not in r29_norm:
+                                add_cell_error(
+                                    all_calc_errors, row, 4,
+                                    f"「{matched_rating_name}」{r29_col_letter}29 ({r29_str or '空白'}) 未包含本欄用途「{clean_d_usage}」",
+                                    merged_ranges
+                                )
+                                correction_list.append({
+                                    "row": row,
+                                    "coord": f"D{row}",
+                                    "type": f"跨表核對用途 ({matched_rating_name} {r29_col_letter}29)",
+                                    "original": r29_str or "(空白)",
+                                    "correct": f"應包含「{clean_d_usage}」"
+                                })
                     rating_block_idx += 1
 
                 # ---------------- 【C 欄 & D 欄 資料庫檢核 H 欄單價、K 欄單位】 ----------------
@@ -3074,11 +3188,19 @@ def background_process_excel(task_id, filepath, original_filename):
                             "merge_info": merge_range_str,
                         })
 
+                    # 需求 3：調查表出現立方公尺 (㎥) 之提醒邏輯
+                    raw_m3_val = cell_data.value if cell_data.value is not None else cell_formula.value
+                    is_m3 = has_cubic_meter(raw_m3_val)
+
                     if errors:
+                        if is_m3:
+                            errors.append("㎥")
                         err_msg = "、".join(errors)
                         status = 'special' if is_special else 'error'
                         map_data[(row, col)] = {'status': status, 'text': val_display, 'error': err_msg}
                         error_list.append(f"{'🟪' if is_special else '❌'} {coord}: {err_msg}")
+                    elif is_m3:
+                        map_data[(row, col)] = {'status': 'warning', 'text': val_display, 'error': '提醒：㎥ (立方公尺)'}
                     else:
                         map_data[(row, col)] = {'status': 'valid', 'text': val_display}
 
