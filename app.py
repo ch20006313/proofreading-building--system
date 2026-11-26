@@ -2367,10 +2367,12 @@ def process_rating_sheet(ws_data, ws_formula, rating_db_entries, db_source_label
 
             font_size = cell_formula.font.size if cell_formula.font else None
 
-            # 需求 2：字體應為 12pt，不加儲存格範圍前綴
+            # 評點表字體檢核 (不符時改為淺橘色提醒；若已有紅字錯誤則一併附註)
+            font_warn_msg = None
             if 5 <= row <= 35 and 4 <= col <= 13:
                 if font_size is None or abs(float(font_size) - 12.0) > 0.01:
-                    errors.append(f"字體應為 12pt (目前 {font_size}pt)")
+                    curr_fs_str = f"{float(font_size):g}pt" if font_size is not None else "未設定"
+                    font_warn_msg = f"字體應為 12pt (目前 {curr_fs_str})"
 
             val_display = format_cell_display(raw_display_src, col, row, sheet_type="rating")
             formula_str = str(cell_formula.value if cell_formula.value is not None else "").strip()
@@ -2384,7 +2386,7 @@ def process_rating_sheet(ws_data, ws_formula, rating_db_entries, db_source_label
                     "merge_info": merge_range_str,
                 })
 
-            # 需求 1：評點表第 1~34 列小數點 & 非資料庫品項/數字提醒邏輯
+            # 評點表第 1~34 列小數點、非資料庫品項/數字與字體大小提醒邏輯
             dec_check_val = cell_data.value if cell_data.value is not None else (
                 cell_formula.value if not str(cell_formula.value or "").strip().startswith("=") else None
             )
@@ -2396,15 +2398,19 @@ def process_rating_sheet(ws_data, ws_formula, rating_db_entries, db_source_label
                     errors.append("含有小數點")
                 if is_unlisted:
                     errors.append("非查估標準")
+                if font_warn_msg:
+                    errors.append(font_warn_msg)
                 err_msg = "、".join(errors)
                 map_data[(row, col)] = {'status': 'error', 'text': val_display, 'error': err_msg}
                 error_list.append(f"❌ {coord}: {err_msg}")
-            elif has_dec or is_unlisted:
+            elif has_dec or is_unlisted or font_warn_msg:
                 warn_reasons = []
                 if has_dec:
                     warn_reasons.append("含有小數點")
                 if is_unlisted:
                     warn_reasons.append("非查估標準")
+                if font_warn_msg:
+                    warn_reasons.append(font_warn_msg)
                 map_data[(row, col)] = {'status': 'warning', 'text': val_display, 'error': '提醒：' + '、'.join(warn_reasons)}
             else:
                 map_data[(row, col)] = {'status': 'valid', 'text': val_display}
@@ -3157,6 +3163,26 @@ def background_process_excel(task_id, filepath, original_filename):
                                         merged_ranges
                                     )
 
+            # 動態判定調查表各頁明細區列數 (第 11 列或「調查單位」下一列，至「小計/合計」上一列)
+            detail_font_rows = set()
+            in_detail_section = True
+            for r_chk in range(data_start_row, max_row + 1):
+                b_no_sp = re.sub(r'\s+', '', str(get_cell_value_safe(ws_data, r_chk, 2, merged_ranges) or ""))
+                if any(kw in b_no_sp for kw in ("小計", "合計", "和計")):
+                    in_detail_section = False
+                    continue
+
+                row_bcde_no_sp = re.sub(
+                    r'\s+', '',
+                    "".join(str(get_cell_value_safe(ws_data, r_chk, c_i, merged_ranges) or "") for c_i in range(2, 6))
+                )
+                if "調查單位" in row_bcde_no_sp:
+                    in_detail_section = True
+                    continue
+
+                if in_detail_section:
+                    detail_font_rows.add(r_chk)
+
             # 組合主表視覺化網格 (僅渲染 main_visible_cols: B~L, N~Q)
             for row in range(1, max_row + 1):
                 for col in main_visible_cols:
@@ -3214,8 +3240,24 @@ def background_process_excel(task_id, filepath, original_filename):
                             "merge_info": merge_range_str,
                         })
 
-                    # 需求 3：調查表出現立方公尺 (㎥) 之提醒邏輯
-                    # 需求 1 & 3：調查表出現立方公尺 (㎥) 或非資料庫品項/單價之提醒邏輯
+                    # 調查表字體大小校對 (僅對有實際顯示內容之儲存格檢核，避免空字串公式誤報)
+                    font_warn_msg = None
+                    has_visible_val = (cell_data.value is not None and str(cell_data.value).strip() != "")
+                    if has_visible_val:
+                        if 1 <= row <= 2 and 2 <= col <= 12:
+                            expected_fs = 16
+                        elif row in detail_font_rows and col == 3:
+                            expected_fs = 11
+                        elif row in detail_font_rows and col in (15, 16, 17):
+                            expected_fs = 10
+                        else:
+                            expected_fs = 12
+
+                        if font_size is None or abs(float(font_size) - float(expected_fs)) > 0.01:
+                            curr_fs_str = f"{float(font_size):g}pt" if font_size is not None else "未設定"
+                            font_warn_msg = f"字體應為 {expected_fs}pt (目前 {curr_fs_str})"
+
+                    # 調查表出現立方公尺 (㎥)、非資料庫品項/單價與字體大小提醒邏輯
                     raw_m3_val = cell_data.value if cell_data.value is not None else cell_formula.value
                     is_m3 = has_cubic_meter(raw_m3_val)
                     is_unlisted_main = (row, col) in unlisted_main_cells
@@ -3225,16 +3267,20 @@ def background_process_excel(task_id, filepath, original_filename):
                             errors.append("㎥")
                         if is_unlisted_main:
                             errors.append("非查估標準")
+                        if font_warn_msg:
+                            errors.append(font_warn_msg)
                         err_msg = "、".join(errors)
                         status = 'special' if is_special else 'error'
                         map_data[(row, col)] = {'status': status, 'text': val_display, 'error': err_msg}
                         error_list.append(f"{'🟪' if is_special else '❌'} {coord}: {err_msg}")
-                    elif is_m3 or is_unlisted_main:
+                    elif is_m3 or is_unlisted_main or font_warn_msg:
                         warn_reasons = []
                         if is_m3:
                             warn_reasons.append("㎥ (立方公尺)")
                         if is_unlisted_main:
                             warn_reasons.append("非查估標準")
+                        if font_warn_msg:
+                            warn_reasons.append(font_warn_msg)
                         map_data[(row, col)] = {'status': 'warning', 'text': val_display, 'error': '提醒：' + '、'.join(warn_reasons)}
                     else:
                         map_data[(row, col)] = {'status': 'valid', 'text': val_display}
