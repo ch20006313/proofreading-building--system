@@ -2808,6 +2808,22 @@ def background_process_excel(task_id, filepath, original_filename):
             rating_block_idx = 0
             used_rating_sheet_label = None
 
+            # 預先標記各頁「注意事項：」至「調 查 單 位：」區間列數 (無須查資料庫、無須任何提醒)
+            footer_skip_rows = set()
+            in_footer_block = False
+            for r_chk in range(data_start_row, max_row + 1):
+                row_bf_no_sp = re.sub(
+                    r'\s+', '',
+                    "".join(str(get_cell_value_safe(ws_data, r_chk, c_i, merged_ranges) or "") for c_i in range(2, 7))
+                )
+                if "注意事項" in row_bf_no_sp:
+                    in_footer_block = True
+                if in_footer_block:
+                    footer_skip_rows.add(r_chk)
+                if "調查單位" in row_bf_no_sp:
+                    footer_skip_rows.add(r_chk)
+                    in_footer_block = False
+
             # 逐列檢核 (第 11 列 ~ max_row)
             for row in range(1, max_row + 1):
                 if row < data_start_row:
@@ -2818,10 +2834,13 @@ def background_process_excel(task_id, filepath, original_filename):
                 col_D_val = str(ws_data.cell(row=row, column=4).value or "").strip()
                 col_O_val = str(get_cell_value_safe(ws_data, row, 15, merged_ranges) or "").strip()
 
-                row_text_sample = "".join(
-                    str(ws_data.cell(row=row, column=c).value or "") for c in [2, 3, 12, 14]
+                row_text_sample = re.sub(
+                    r'\s+', '',
+                    "".join(str(get_cell_value_safe(ws_data, row, c, merged_ranges) or "") for c in [2, 3, 12, 14])
                 )
-                is_footer_row = any(kw in row_text_sample for kw in ["注意事項", "調查單位", "調查日期", "以下空白"])
+                is_footer_row = (row in footer_skip_rows) or any(
+                    kw in row_text_sample for kw in ["注意事項", "調查單位", "調查日期", "以下空白"]
+                )
 
                 is_subtotal_row = ("小計" in col_B_val)
                 is_total_row = ("合計" in col_B_val) and not is_subtotal_row
@@ -3240,10 +3259,11 @@ def background_process_excel(task_id, filepath, original_filename):
                             "merge_info": merge_range_str,
                         })
 
-                    # 調查表字體大小校對 (僅對有實際顯示內容之儲存格檢核，避免空字串公式誤報)
+                    # 調查表字體大小校對 (「注意事項：」至「調 查 單 位：」區間無須檢核與提醒)
                     font_warn_msg = None
+                    is_in_footer_skip = (row in footer_skip_rows)
                     has_visible_val = (cell_data.value is not None and str(cell_data.value).strip() != "")
-                    if has_visible_val:
+                    if has_visible_val and not is_in_footer_skip:
                         if 1 <= row <= 2 and 2 <= col <= 12:
                             expected_fs = 16
                         elif row in detail_font_rows and col == 3:
@@ -3259,8 +3279,8 @@ def background_process_excel(task_id, filepath, original_filename):
 
                     # 調查表出現立方公尺 (㎥)、非資料庫品項/單價與字體大小提醒邏輯
                     raw_m3_val = cell_data.value if cell_data.value is not None else cell_formula.value
-                    is_m3 = has_cubic_meter(raw_m3_val)
-                    is_unlisted_main = (row, col) in unlisted_main_cells
+                    is_m3 = (not is_in_footer_skip) and has_cubic_meter(raw_m3_val)
+                    is_unlisted_main = (not is_in_footer_skip) and ((row, col) in unlisted_main_cells)
 
                     if errors:
                         if is_m3:
